@@ -205,12 +205,32 @@ pre.code { background: #1d2430; color: #e6ebf2; border-radius: 8px; padding: 12p
 .media-name { flex: 1; font-family: "Consolas", ui-monospace, monospace; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-size { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .media-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--line); flex: none; }
-.media-pick input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.media-pick .btn { display: inline-block; }
 .media-note { margin-top: 6px; font-size: 12px; color: var(--ink-muted); line-height: 1.6; }
 .media-note.over { color: var(--danger); font-weight: 700; }
-.drop { border: 1px dashed var(--line); border-radius: 8px; padding: 12px; transition: background 0.15s; }
-.drop.is-over { background: rgba(47, 95, 214, 0.08); border-color: var(--accent); }
+
+/* 並び順の番号。複数枚の投稿では、この順に並ぶ */
+.media-index {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+}
+
+/* 順番を入れ替える小さなボタン */
+.btn-icon { padding: 4px 9px; line-height: 1; font-size: 14px; }
+
+/* ファイルを選ぶ枠。どこを押しても選べて、まとめてドラッグしても落とせる */
+.drop {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  border: 2px dashed var(--line); border-radius: 10px; padding: 20px 16px;
+  background: var(--panel-2); cursor: pointer; text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.drop:hover { border-color: var(--accent); }
+.drop.is-over { background: rgba(47, 95, 214, 0.1); border-color: var(--accent); }
+.drop[data-pending="true"] { cursor: progress; opacity: 0.7; }
+.drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop-main { font-weight: 700; color: var(--accent); }
+.drop-sub { font-size: 12px; color: var(--ink-muted); line-height: 1.6; }
 
 /* ---------- 結果の一覧 ---------- */
 .result-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }

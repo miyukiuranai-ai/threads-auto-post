@@ -113,18 +113,51 @@ export default function MediaUploader({ value = [], onChange, disabled = false, 
     onChange(value.filter((m) => m.fingerprint !== fingerprint));
   }
 
+  /** 並び順を入れ替える。複数枚の投稿では、この順番がそのまま表示の順番になる。 */
+  function move(index, delta) {
+    const to = index + delta;
+    if (to < 0 || to >= value.length) return;
+    const next = [...value];
+    [next[index], next[to]] = [next[to], next[index]];
+    onChange(next);
+  }
+
   return (
     <div className="media-field">
       {value.length > 0 && (
         <ul className="media-list">
-          {value.map((m) => (
+          {value.map((m, i) => (
             <li key={m.fingerprint ?? m.path}>
+              {/* 複数あるときは、この番号の順に投稿へ並ぶ */}
+              {value.length > 1 && <span className="media-index">{i + 1}</span>}
               <Thumb file={files[m.fingerprint]} entry={m} />
               <span className="badge" data-tone="ok">
                 {m.kind === 'video' ? '動画' : '画像'}
               </span>
               <span className="media-name">{m.name ?? m.path?.split('/').pop()}</span>
               <span className="media-size">{mb(m.bytes ?? 0)}</span>
+              {value.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-icon"
+                    onClick={() => move(i, -1)}
+                    disabled={disabled || Boolean(busy) || i === 0}
+                    title="1つ前へ"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-icon"
+                    onClick={() => move(i, 1)}
+                    disabled={disabled || Boolean(busy) || i === value.length - 1}
+                    title="1つ後ろへ"
+                  >
+                    ↓
+                  </button>
+                </>
+              )}
               <button type="button" className="btn" onClick={() => remove(m.fingerprint)} disabled={disabled || Boolean(busy)}>
                 外す
               </button>
@@ -133,8 +166,10 @@ export default function MediaUploader({ value = [], onChange, disabled = false, 
         </ul>
       )}
 
-      <div
+      {/* 枠のどこを押してもファイルを選べる。まとめてドラッグして落としてもよい */}
+      <label
         className={`drop${dragging ? ' is-over' : ''}`}
+        data-pending={Boolean(busy)}
         onDragOver={(e) => {
           e.preventDefault();
           if (!busy && !disabled) setDragging(true);
@@ -146,28 +181,29 @@ export default function MediaUploader({ value = [], onChange, disabled = false, 
           if (!busy && !disabled) takeFiles(e.dataTransfer?.files);
         }}
       >
-        <label className="media-pick">
-          <input
-            type="file"
-            accept={ACCEPT}
-            multiple
-            onChange={(e) => {
-              const list = e.target.files;
-              e.target.value = '';
-              takeFiles(list);
-            }}
-            disabled={disabled || Boolean(busy)}
-          />
-          <span className="btn" data-pending={Boolean(busy)}>
-            {busy ?? (value.length ? 'さらに追加' : '画像・動画を追加')}
-          </span>
-        </label>
-        {!compact && <span className="media-note" style={{ marginLeft: 10 }}>ここにファイルを落としても追加できます。</span>}
-      </div>
+        <input
+          type="file"
+          accept={ACCEPT}
+          multiple
+          onChange={(e) => {
+            const list = e.target.files;
+            e.target.value = '';
+            takeFiles(list);
+          }}
+          disabled={disabled || Boolean(busy)}
+        />
+        <span className="drop-main">
+          {busy ?? (value.length ? `さらに追加する（いま ${value.length} 個）` : '画像・動画を選ぶ（何個でも）')}
+        </span>
+        <span className="drop-sub">
+          ここにまとめてドラッグしても追加できます。選ぶ画面で複数まとめて選ぶには、Ctrl を押しながらクリック（連続したものは Shift を押しながら）。
+        </span>
+      </label>
 
       {!compact && (
         <div className="media-note">
-          画像 JPEG/PNG・8MBまで／動画 MP4/MOV・1GB・5分まで。2つ以上入れると複数枚の投稿になります（20個まで）。動画は Threads 側の変換に数分かかります。
+          1回の投稿に20個まで。2つ以上入れると複数枚の投稿になり、上の番号の順に並びます。画像と動画を混ぜても構いません。
+          画像 JPEG/PNG・8MBまで／動画 MP4/MOV・1GB・5分まで。動画は Threads 側の変換に数分かかります。
         </div>
       )}
 

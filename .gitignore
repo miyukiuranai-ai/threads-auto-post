@@ -1,0 +1,19 @@
+# 秘密情報
+.env.local
+.env*.local
+
+# node
+node_modules/
+npm-debug.log*
+
+# misc
+.DS_Store
+.vercel
+.next/
+
+# 鍵ファイル（Firebase のサービスアカウント）
+sa.json
+*-firebase-adminsdk-*.json
+
+# 文章の取り込み用に手元で置いたファイル
+import/

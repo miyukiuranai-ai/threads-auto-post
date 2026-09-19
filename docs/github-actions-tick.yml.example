@@ -1,0 +1,35 @@
+name: 定期実行（自動投稿・予約投稿）
+
+# Vercel の無料プランは Cron が1日1回までのため、5分おきの処理を GitHub Actions から叩く。
+# 使うときは .github/workflows/tick.yml に置き、リポジトリの Secrets に CRON_SECRET、Variables に APP_URL を入れる。
+# GitHub の定期実行は数分遅れることがある。確実さを求めるなら docs/apps-script.md の Apps Script を使う。
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 自動投稿の枠と予約投稿を処理
+        run: |
+          response=$(curl -sS --max-time 300 -w '\n%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL }}/api/cron/tick")
+
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n1)
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "::error::定期実行に失敗しました (HTTP $status)"
+            exit 1
+          fi

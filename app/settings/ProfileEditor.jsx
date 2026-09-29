@@ -75,45 +75,61 @@ export default function ProfileEditor({ account, needed = [], choices = [] }) {
         )}
         <small>
           文章に <code>{'{属性}'}</code> と書いた場所へ、ここで選んだ言葉が入ります。
-          <strong>{attrValue || '（未設定）'}</strong> を選ぶと、<code>{'{属性}'}だから夜は遅くて</code> は
-          「{attrValue ? `${attrValue}だから夜は遅くて` : '…'}」として投稿されます。
-          「その他」で入れた言葉は、次から他の名義の一覧にも出ます。
+          {attrValue ? (
+            <>
+              いまの設定だと <code>{'{属性}'}だから夜は遅くて</code> は「<strong>{attrValue}だから夜は遅くて</strong>」として投稿されます。
+            </>
+          ) : (
+            '未設定のままだと、{属性} を使った文章はこの名義では投稿されません。'
+          )}
+          <br />
+          一覧に無い言葉は「その他」で足せます。一度使うと、次から他の名義の一覧にも出ます。
         </small>
       </label>
 
-      <div className="profile-sub">その他の項目（任意）</div>
-      <div className="profile-rows">
-        {rows.map((row, i) => (
-          <div className="profile-row" key={i}>
-            <input
-              list="profile-keys"
-              value={row.key}
-              onChange={update(i, 'key')}
-              placeholder="項目名（例: 年齢）"
-              maxLength={PROFILE_LIMITS.keyLength}
-              aria-label="項目名"
-            />
-            <span className="profile-eq">:</span>
-            <input
-              value={row.value}
-              onChange={update(i, 'value')}
-              placeholder="値（例: 24）"
-              maxLength={PROFILE_LIMITS.valueLength}
-              aria-label="値"
-            />
-            <button type="button" className="btn" onClick={() => removeRow(i)} title="この行を消す">
-              ✕
+      {/* 普段は属性だけで足りる。文章が {年齢} のような別の言葉を使っているときだけ開いてもらう */}
+      <details className="fold" open={rows.length > 0}>
+        <summary>他の項目も使う（任意）</summary>
+        <div className="profile-rows">
+          {rows.map((row, i) => (
+            <div className="profile-row" key={i}>
+              <input
+                list="profile-keys"
+                value={row.key}
+                onChange={update(i, 'key')}
+                placeholder="項目名（例: 年齢）"
+                maxLength={PROFILE_LIMITS.keyLength}
+                aria-label="項目名"
+              />
+              <span className="profile-eq">:</span>
+              <input
+                value={row.value}
+                onChange={update(i, 'value')}
+                placeholder="値（例: 24）"
+                maxLength={PROFILE_LIMITS.valueLength}
+                aria-label="値"
+              />
+              <button type="button" className="btn" onClick={() => removeRow(i)} title="この行を消す">
+                ✕
+              </button>
+            </div>
+          ))}
+          <div className="field-row">
+            <button type="button" className="btn" onClick={addRow} disabled={rows.length >= PROFILE_LIMITS.items - 1}>
+              項目を足す
             </button>
+            <small className="stat-note">
+              文章に <code>{'{年齢}'}</code> のように属性以外の言葉を差し込みたいときだけ使います。普段は空のままで構いません。
+            </small>
           </div>
-        ))}
-        {rows.length === 0 && <div className="stat-note">年齢や住まいなど、他にも差し込みたい言葉があれば足してください。</div>}
-      </div>
+        </div>
 
-      <datalist id="profile-keys">
-        {[...new Set([...SUGGESTED_KEYS, ...needed])].filter((k) => k !== ATTRIBUTE_KEY).map((k) => (
-          <option key={k} value={k} />
-        ))}
-      </datalist>
+        <datalist id="profile-keys">
+          {[...new Set([...SUGGESTED_KEYS, ...needed])].filter((k) => k !== ATTRIBUTE_KEY).map((k) => (
+            <option key={k} value={k} />
+          ))}
+        </datalist>
+      </details>
 
       <div className="editor-foot">
         <span>
@@ -123,18 +139,9 @@ export default function ProfileEditor({ account, needed = [], choices = [] }) {
           {state.error && <span className="over">{state.error}</span>}
           {state.ok && <span className="ok-text">{state.ok}</span>}
         </span>
-        <span className="actions-row">
-          <button type="button" className="btn" onClick={addRow} disabled={rows.length >= PROFILE_LIMITS.items - 1}>
-            項目を足す
-          </button>
-          <SubmitButton className="btn btn-primary" pendingLabel="保存中…">
-            属性を保存
-          </SubmitButton>
-        </span>
-      </div>
-
-      <div className="stat-note">
-        <code>{'{ユーザー名}'}</code> はいつでも使えます（@{account.name} の名前が入ります）。値が空の項目を文章が使っていると、その投稿は出さずに見送ります。
+        <SubmitButton className="btn btn-primary" pendingLabel="保存中…">
+          属性を保存
+        </SubmitButton>
       </div>
     </form>
   );

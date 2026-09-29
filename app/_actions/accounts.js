@@ -8,6 +8,7 @@ import { DEFAULT_GROUP } from '@/lib/server/auth-core.mjs';
 import { listAccounts, invalidate, TAGS } from '@/lib/server/repo.mjs';
 import { DEFAULT_SCHEDULE } from '@/lib/server/schedule.mjs';
 import { bumpTemplateVersion } from '@/lib/server/templates.mjs';
+import { normalizeProfile } from '@/lib/server/profile.mjs';
 import { refreshTokens } from '@/lib/server/tokens.mjs';
 
 /** 生成ツールで発行した長期トークンは60日で失効する。 */
@@ -88,6 +89,34 @@ export async function setAccountGroup(formData) {
   const group = String(formData.get('group') ?? '').trim() || DEFAULT_GROUP;
   await getDb().collection(COLLECTIONS.accounts).doc(id).set({ group, updatedAt: new Date().toISOString() }, { merge: true });
   refresh();
+}
+
+/**
+ * 名義の属性（年齢・職業など）を保存する。
+ * 文章の中の {職業} のような書き方が、ここで入れた値に置き換わる。
+ */
+export async function setAccountProfile(formData) {
+  try {
+    const user = await getCurrentUser();
+    const allowed = filterAccountsForUser(await listAccounts(), user);
+    const id = String(formData.get('accountId') ?? '');
+    if (!allowed.some((a) => a.id === id)) return { error: 'その名義は扱えません。' };
+
+    let entries = [];
+    try {
+      entries = JSON.parse(String(formData.get('profile') ?? '[]'));
+    } catch {
+      return { error: '入力を読み取れませんでした。' };
+    }
+
+    const profile = normalizeProfile(entries);
+    await getDb().collection(COLLECTIONS.accounts).doc(id).set({ profile, updatedAt: new Date().toISOString() }, { merge: true });
+    refresh();
+    const count = Object.keys(profile).length;
+    return { ok: count ? `${count}件の属性を保存しました。` : '属性をすべて消しました。' };
+  } catch (err) {
+    return { error: err.message };
+  }
 }
 
 /** トークンをいま延長する（60日の期限を伸ばす）。 */

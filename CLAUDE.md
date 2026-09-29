@@ -11,6 +11,7 @@
 - `lib/server/*.mjs` がサーバー側の本体。`app/_actions/*.js` がサーバーアクション、`app/api/cron/*` が定期実行の入口。
   - `templates.mjs` 文章ストック（取り込み・名義ごとの一巡）、`schedule.mjs` 自動投稿の設定、`auto.mjs` 枠の判定と投稿の作成、
     `publish.mjs` Threads への送信（コンテナ作成 → 準備待ち → 公開。準備待ちは次回に引き継ぐ）、`tick.mjs` 5分おきの本体。
+  - `profile.mjs` 名義ごとの属性と、本文の `{項目名}` の差し込み（AI は使わない置き換えだけ。値が無ければ投稿しない）。
   - `time.mjs` 日本時間の扱い（保存は ISO/UTC、画面と設定は日本時間）。
 - 投稿の状態: scheduled → publishing → posted / failed。ほかに missed（時刻切れ）、canceled、skipped（見送り）、deleted。
 - 自動投稿の投稿 ID は `auto-<名義>-<日付>-<時刻>` / `auto-<名義>-i<ms>` で、二重に作らない。

@@ -1,6 +1,8 @@
-import { listAccounts, daysUntil, lastRunAt } from '@/lib/server/repo.mjs';
+import { listAccounts, listTemplates, daysUntil, lastRunAt } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary } from '@/lib/server/schedule.mjs';
+import { poolOf } from '@/lib/server/templates.mjs';
+import { neededKeys, missingKeys } from '@/lib/server/profile.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
 import { toJstLabel } from '@/lib/server/time.mjs';
 import AddAccountsForm from './AddAccountsForm';
@@ -27,14 +29,23 @@ export default async function SettingsPage() {
   const isAdmin = user.role === 'admin';
 
   let accounts = [];
+  let templates = [];
   let dbError = null;
   let last = null;
   try {
     accounts = filterAccountsForUser(await listAccounts(), user);
-    last = await lastRunAt();
+    [templates, last] = await Promise.all([listTemplates(), lastRunAt()]);
   } catch (err) {
     dbError = err.message;
   }
+
+  // その名義が使う文章が求めている項目と、まだ空の項目
+  const needs = new Map(
+    accounts.map((a) => {
+      const pool = poolOf(templates, a);
+      return [a.id, { needed: neededKeys(pool), missing: missingKeys(a, pool) }];
+    })
+  );
 
   const tickStale = last ? Date.now() - new Date(last).getTime() > 20 * 60000 : true;
 
@@ -86,13 +97,22 @@ export default async function SettingsPage() {
                   <th>名義</th>
                   <th style={{ width: 110 }}>トークン期限</th>
                   <th>状態・自動投稿</th>
+                  <th>属性</th>
                   {isAdmin && <th style={{ width: 150 }}>担当</th>}
                   <th style={{ width: 260 }}>操作</th>
                 </tr>
               </thead>
               <tbody>
                 {accounts.map((a) => (
-                  <AccountRow key={a.id} account={a} days={daysUntil(a.tokenExpiresAt)} isAdmin={isAdmin} summary={scheduleSummary(a.schedule)} />
+                  <AccountRow
+                    key={a.id}
+                    account={a}
+                    days={daysUntil(a.tokenExpiresAt)}
+                    isAdmin={isAdmin}
+                    summary={scheduleSummary(a.schedule)}
+                    needed={needs.get(a.id)?.needed ?? []}
+                    missing={needs.get(a.id)?.missing ?? []}
+                  />
                 ))}
               </tbody>
             </table>

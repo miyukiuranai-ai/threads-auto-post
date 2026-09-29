@@ -7,6 +7,7 @@ import { listAccounts, getAccountWithToken, invalidate, TAGS } from '@/lib/serve
 import { publishPost } from '@/lib/server/publish.mjs';
 import { normalizeMedia } from '@/lib/server/storage.mjs';
 import { validateBody } from '@/lib/server/templates.mjs';
+import { fillProfile } from '@/lib/server/profile.mjs';
 import { fromLocalInput } from '@/lib/server/time.mjs';
 
 /** 「今すぐ投稿」で1回に使う時間。サーバー関数の上限（60秒）に収める。 */
@@ -47,15 +48,32 @@ export async function submitCompose(formData) {
       if (new Date(scheduledAt).getTime() < Date.now() - 60_000) return { error: '予約の日時が過去になっています。' };
     }
 
+    // 本文に {職業} などがあれば、名義ごとの属性に置き換える。
+    // 値が入っていない名義は投稿せず、理由を返す
+    const filledFor = new Map();
+    const blocked = [];
+    for (const account of targets) {
+      const filled = fillProfile(body, account);
+      if (filled.missing.length) {
+        blocked.push({ account: account.name, result: 'failed', reason: `文章が使っている「${filled.missing.join('・')}」がこの名義に設定されていません` });
+        continue;
+      }
+      filledFor.set(account.id, filled.body);
+    }
+    const ready = targets.filter((a) => filledFor.has(a.id));
+    if (!ready.length) {
+      return { error: '選んだ名義すべてで、本文に使っている項目が設定されていません。名義の管理の「属性」で入れてください。', results: blocked };
+    }
+
     const db = getDb();
     const now = new Date().toISOString();
     const created = [];
-    for (const account of targets) {
+    for (const account of ready) {
       const ref = db.collection(COLLECTIONS.posts).doc();
       await ref.set({
         accountId: account.id,
         accountName: account.name,
-        body,
+        body: filledFor.get(account.id),
         media,
         scheduledAt,
         status: 'scheduled',
@@ -72,8 +90,8 @@ export async function submitCompose(formData) {
 
     if (mode === 'reserve') {
       return {
-        ok: `${created.length}件を予約しました。予定時刻になると自動で投稿されます（定期実行が5分おきに確かめます）。`,
-        results: created.map((c) => ({ account: c.account.name, result: 'scheduled' })),
+        ok: `${created.length}件を予約しました。予定時刻になると自動で投稿されます（定期実行が5分おきに確かめます）。${blocked.length ? ` ${blocked.length}件は属性が足りず見送りました。` : ''}`,
+        results: [...created.map((c) => ({ account: c.account.name, result: 'scheduled' })), ...blocked],
       };
     }
 
@@ -81,7 +99,7 @@ export async function submitCompose(formData) {
     const results = await Promise.all(
       created.map(async ({ account, postId }) => {
         const full = await getAccountWithToken(account.id);
-        const post = { id: postId, body, media };
+        const post = { id: postId, body: filledFor.get(account.id), media };
         const r = await publishPost({ account: full, post, budgetMs: NOW_BUDGET_MS });
         return { account: account.name, ...r };
       })
@@ -91,14 +109,15 @@ export async function submitCompose(formData) {
     revalidatePath('/posts');
     revalidatePath('/');
 
-    const posted = results.filter((r) => r.result === 'posted' || r.result === 'dry_run').length;
-    const pending = results.filter((r) => r.result === 'pending').length;
-    const failed = results.filter((r) => r.result === 'failed').length;
+    const all = [...results, ...blocked];
+    const posted = all.filter((r) => r.result === 'posted' || r.result === 'dry_run').length;
+    const pending = all.filter((r) => r.result === 'pending').length;
+    const failed = all.filter((r) => r.result === 'failed').length;
     const parts = [`投稿 ${posted}件`];
     if (pending) parts.push(`準備待ち ${pending}件（数分後に自動で公開）`);
     if (failed) parts.push(`失敗 ${failed}件`);
 
-    return { ok: parts.join(' ／ '), results };
+    return { ok: parts.join(' ／ '), results: all };
   } catch (err) {
     return { error: err.message };
   }

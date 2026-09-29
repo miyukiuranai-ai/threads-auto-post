@@ -5,6 +5,7 @@ import { submitCompose } from '../_actions/compose';
 import SubmitButton from '../_components/SubmitButton';
 import MediaUploader from '../_components/MediaUploader';
 import AccountPicker from '../_components/AccountPicker';
+import { fillProfile, findPlaceholders } from '@/lib/server/profile.mjs';
 
 const initial = { ok: null, error: null, results: null };
 const MAX = 500;
@@ -23,7 +24,15 @@ export default function ComposeForm({ accounts, defaultLocal }) {
   const [body, setBody] = useState('');
   const [media, setMedia] = useState([]);
   const [mode, setMode] = useState('now');
+  const [picked, setPicked] = useState([]);
   const length = [...body].length;
+
+  // {職業} のような差し込みが本文にあるとき、名義ごとの仕上がりを確かめられるようにする
+  const placeholders = findPlaceholders(body);
+  const previews = placeholders.length
+    ? accounts.filter((a) => picked.includes(a.id)).map((a) => ({ account: a, ...fillProfile(body, a) }))
+    : [];
+  const lacking = previews.filter((p) => p.missing.length > 0);
 
   return (
     <form action={action}>
@@ -31,7 +40,7 @@ export default function ComposeForm({ accounts, defaultLocal }) {
         <div className="card-head">
           <div className="card-title">1. どの名義で投稿するか</div>
         </div>
-        <AccountPicker accounts={accounts} hint="複数選ぶと、同じ内容がそれぞれの名義から投稿されます。停止中の名義でも「今すぐ投稿」はできます。" />
+        <AccountPicker accounts={accounts} onChange={setPicked} hint="複数選ぶと、同じ内容がそれぞれの名義から投稿されます。停止中の名義でも「今すぐ投稿」はできます。" />
       </section>
 
       <section className="card">
@@ -54,6 +63,33 @@ export default function ComposeForm({ accounts, defaultLocal }) {
 
         <input type="hidden" name="media" value={JSON.stringify(media)} />
         <MediaUploader value={media} onChange={setMedia} />
+
+        {placeholders.length > 0 && (
+          <div className="preview-box">
+            <div className="preview-head">
+              名義ごとの仕上がり
+              <small>
+                {placeholders.map((k) => `{${k}}`).join('・')} が、それぞれの名義の属性に置き換わります
+              </small>
+            </div>
+            {previews.length === 0 ? (
+              <div className="stat-note">名義を選ぶと、ここに仕上がりが出ます。</div>
+            ) : (
+              previews.map((p) => (
+                <div className="preview-item" key={p.account.id} data-missing={p.missing.length > 0}>
+                  <strong>@{p.account.name}</strong>
+                  {p.missing.length > 0 ? (
+                    <span className="over">
+                      属性「{p.missing.join('・')}」が未設定です。名義の管理で入れてください（この名義には投稿しません）
+                    </span>
+                  ) : (
+                    <span className="preview-body">{p.body}</span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card">
@@ -82,7 +118,11 @@ export default function ComposeForm({ accounts, defaultLocal }) {
             {state.error && <span className="over">{state.error}</span>}
             {state.ok && <span className="ok-text">{state.ok}</span>}
           </span>
-          <SubmitButton className="btn btn-primary btn-lg" pendingLabel={mode === 'now' ? '投稿中…（最大1分ほど）' : '予約中…'} disabled={length > MAX || (length === 0 && media.length === 0)}>
+          <SubmitButton
+            className="btn btn-primary btn-lg"
+            pendingLabel={mode === 'now' ? '投稿中…（最大1分ほど）' : '予約中…'}
+            disabled={length > MAX || (length === 0 && media.length === 0) || (previews.length > 0 && lacking.length === previews.length)}
+          >
             {mode === 'now' ? '今すぐ投稿する' : '予約する'}
           </SubmitButton>
         </div>

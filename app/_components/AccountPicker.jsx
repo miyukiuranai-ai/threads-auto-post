@@ -6,16 +6,20 @@ import { useState } from 'react';
  * 名義をまとめて選ぶ欄。チェックボックスの並びに「すべて選択」を添える。
  * フォームの中で使い、name で複数の値を送る。
  */
-export default function AccountPicker({ accounts, name = 'accountIds', initial = [], disabled = false, hint }) {
-  const [selected, setSelected] = useState(() => new Set(initial));
+export default function AccountPicker({ accounts, name = 'accountIds', initial = [], disabled = false, hint, onChange }) {
+  const [selected, setSelectedState] = useState(() => new Set(initial));
+
+  /** 選んだ名義が変わったことを、呼び出し側にも伝える（下書きの確認に使う）。 */
+  function setSelected(next) {
+    setSelectedState(next);
+    onChange?.([...next]);
+  }
 
   function toggle(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
   }
 
   const allSelected = accounts.length > 0 && accounts.every((a) => selected.has(a.id));

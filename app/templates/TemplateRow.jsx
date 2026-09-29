@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { updateTemplate, setTemplateEnabled, deleteTemplate, setTemplateMedia } from '../_actions/templates';
 import SubmitButton from '../_components/SubmitButton';
 import MediaUploader from '../_components/MediaUploader';
+import { findPlaceholders } from '@/lib/server/profile.mjs';
 
 const initial = { ok: null, error: null };
 
@@ -16,6 +17,8 @@ export default function TemplateRow({ template, accounts, lastUsedLabel }) {
   const enabled = template.enabled !== false;
   const owner = template.accountId ? accounts.find((a) => a.id === template.accountId) : null;
   const length = [...body].length;
+  // {職業} のような差し込みが入っているか（編集中はその場で数え直す）
+  const placeholders = findPlaceholders(editing ? body : template.body);
 
   async function onMediaChange(next) {
     setMedia(next);
@@ -41,6 +44,13 @@ export default function TemplateRow({ template, accounts, lastUsedLabel }) {
           <span>使用 {template.useCount ?? 0}回</span>
           {template.lastUsedAt && <span>最終 {lastUsedLabel}</span>}
           {media.length > 0 && <span>添付 {media.length}個</span>}
+          {placeholders.map((k) => (
+            <span key={k} className="tag tag-fill" title="名義の属性が差し込まれます">
+              {'{'}
+              {k}
+              {'}'}
+            </span>
+          ))}
           {!enabled && (
             <span className="badge" data-tone="warn">
               無効

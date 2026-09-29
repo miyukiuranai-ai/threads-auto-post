@@ -74,7 +74,11 @@ export default function ImportForm({ accounts, defaultScope = 'shared' }) {
           onChange={(e) => setText(e.target.value)}
           placeholder={mode === 'line' ? '1行に1本ずつ' : mode === 'blank' ? '文章と文章のあいだを空行で区切る' : '文章1\n---\n文章2\n---\n文章3'}
         />
-        <small>{text.trim() ? `いまの区切り方で ${count} 本になります。` : '数百本まとめて貼り付けても構いません。'} 1本 500 文字まで。長すぎるものは飛ばして知らせます。</small>
+        <small>
+          {text.trim() ? `いまの区切り方で ${count} 本になります。` : '数百本まとめて貼り付けても構いません。'} 1本 500 文字まで。長すぎるものは飛ばして知らせます。
+          <br />
+          文章の中に <code>{'{属性}'}</code> のように書くと、投稿するときに名義ごとの値へ置き換わります。看護師の名義なら「看護師」、シンママの名義なら「シンママ」が入ります（名義の管理の「属性」で設定）。
+        </small>
       </label>
 
       <div className="editor-foot">

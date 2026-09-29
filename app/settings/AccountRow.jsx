@@ -4,14 +4,16 @@ import { useState, useActionState } from 'react';
 import { setAccountGroup, removeAccount } from '../_actions/accounts';
 import { setAccountStatus } from '../_actions/schedule';
 import SubmitButton from '../_components/SubmitButton';
+import ProfileEditor from './ProfileEditor';
 
 const initial = { ok: null, error: null };
 
-export default function AccountRow({ account, days, isAdmin, summary }) {
+export default function AccountRow({ account, days, isAdmin, summary, needed = [], missing = [] }) {
   const tone = days === null ? 'warn' : days < 0 ? 'danger' : days < 10 ? 'warn' : 'ok';
   const active = (account.status ?? 'active') === 'active';
 
   const [confirming, setConfirming] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [removeState, remove] = useActionState(async (_prev, formData) => removeAccount(formData), initial);
 
   return (
@@ -36,6 +38,23 @@ export default function AccountRow({ account, days, isAdmin, summary }) {
         <div className="post-slot">{summary}</div>
       </td>
 
+      <td>
+        {Object.entries(account.profile ?? {}).length === 0 ? (
+          <span className="stat-note">未設定</span>
+        ) : (
+          <div className="profile-chips">
+            {Object.entries(account.profile).map(([key, value]) => (
+              <span key={key} className="tag">
+                {key}: {value}
+              </span>
+            ))}
+          </div>
+        )}
+        {missing.length > 0 && (
+          <div className="post-slot over">文章が使う「{missing.join('・')}」が空です</div>
+        )}
+      </td>
+
       {isAdmin && (
         <td>
           <form action={setAccountGroup} className="schedule-form" style={{ marginTop: 0 }}>
@@ -58,10 +77,16 @@ export default function AccountRow({ account, days, isAdmin, summary }) {
             </SubmitButton>
           </form>
 
+          <button type="button" className="btn" onClick={() => setEditingProfile((v) => !v)} title="看護師・シンママ・年齢など。文章に差し込めます">
+            {editingProfile ? '属性を閉じる' : '属性'}
+          </button>
+
           <button type="button" className="btn" onClick={() => setConfirming((v) => !v)}>
             {confirming ? '取消' : '外す'}
           </button>
         </div>
+
+        {editingProfile && <ProfileEditor account={account} needed={needed} />}
 
         {confirming && (
           <form action={remove} className="remove-box">

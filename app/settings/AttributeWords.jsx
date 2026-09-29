@@ -25,7 +25,8 @@ export default function AttributeWords({ attribute, words, accountNames = [] }) 
   const removeRow = (i) => setRows((prev) => prev.filter((_, j) => j !== i));
   const addRow = () => setRows((prev) => [...prev, { key: '', text: '' }]);
 
-  const total = rows.reduce((sum, r) => sum + r.text.split('\n').filter((v) => v.trim()).length, 0);
+  // 見出しには「保存済みの数」を出す。入力欄の初期値を数えると、未設定でも1個あるように見えてしまう
+  const savedTotal = Object.values(words ?? {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
 
   return (
     <div className="words-item">
@@ -35,7 +36,7 @@ export default function AttributeWords({ attribute, words, accountNames = [] }) 
         </button>
         <strong>{attribute}</strong>
         <span className="stat-note">
-          {total > 0 ? `${total}個の言い回し` : '言い回しなし（属性の名前がそのまま入ります）'}
+          {savedTotal > 0 ? `${savedTotal}個の言い回し` : '未設定（属性の名前がそのまま入ります）'}
           {accountNames.length > 0 && ` ・ ${accountNames.map((n) => `@${n}`).join('・')}`}
         </span>
       </div>

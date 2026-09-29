@@ -1,9 +1,11 @@
 import { listAccounts, listTemplates } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
+import { attributeChoices } from '@/lib/server/profile.mjs';
 import ImportForm from './ImportForm';
 import TemplateRow from './TemplateRow';
 import BulkDeleteForm from './BulkDeleteForm';
+import BulkAttributeForm from './BulkAttributeForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +30,15 @@ export default async function TemplatesPage({ searchParams }) {
   const tag = params?.tag ?? '';
   const state = params?.state ?? 'all'; // all / enabled / disabled
   const q = String(params?.q ?? '').trim();
+  const attr = params?.attr ?? ''; // '' なら指定なし、'none' なら属性を指定していない文章
   const page = Math.max(1, Number(params?.page ?? 1) || 1);
 
   let filtered = templates;
   if (scope === 'shared') filtered = filtered.filter((t) => t.accountId == null);
   else if (scope !== 'all') filtered = filtered.filter((t) => t.accountId === scope);
   if (tag) filtered = filtered.filter((t) => (t.tags ?? []).includes(tag));
+  if (attr === 'none') filtered = filtered.filter((t) => !(t.attributes ?? []).length);
+  else if (attr) filtered = filtered.filter((t) => (t.attributes ?? []).includes(attr));
   if (state === 'enabled') filtered = filtered.filter((t) => t.enabled !== false);
   if (state === 'disabled') filtered = filtered.filter((t) => t.enabled === false);
   if (q) filtered = filtered.filter((t) => String(t.body ?? '').includes(q));
@@ -46,7 +51,7 @@ export default async function TemplatesPage({ searchParams }) {
   const countByAccount = new Map(accounts.map((a) => [a.id, templates.filter((t) => t.accountId === a.id).length]));
 
   const link = (extra) => {
-    const next = { scope, tag, state, q, page: 1, ...extra };
+    const next = { scope, tag, state, q, attr, page: 1, ...extra };
     const sp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v && !(k === 'scope' && v === 'all') && !(k === 'state' && v === 'all') && !(k === 'page' && v === 1)) sp.set(k, String(v));
     const s = sp.toString();
@@ -54,6 +59,8 @@ export default async function TemplatesPage({ searchParams }) {
   };
 
   const slim = accounts.map((a) => ({ id: a.id, name: a.name }));
+  const choices = attributeChoices(accounts);
+  const filterLabel = `${scope === 'all' ? 'すべて' : scope === 'shared' ? '全名義共通' : `@${accounts.find((a) => a.id === scope)?.name ?? scope}`}${tag ? `・タグ「${tag}」` : ''}${attr ? `・属性「${attr === 'none' ? '指定なし' : attr}」` : ''}${q ? `・「${q}」を含む` : ''}`;
   const scopeLabel = scope === 'all' ? 'すべて' : scope === 'shared' ? '全名義共通' : `@${accounts.find((a) => a.id === scope)?.name ?? scope}`;
 
   return (
@@ -78,7 +85,7 @@ export default async function TemplatesPage({ searchParams }) {
             ✦ 文章を取り込む <small>数百本まとめて入れられます</small>
           </div>
         </div>
-        <ImportForm accounts={slim} defaultScope={scope !== 'all' && scope !== 'shared' ? scope : 'shared'} />
+        <ImportForm accounts={slim} choices={choices} defaultScope={scope !== 'all' && scope !== 'shared' ? scope : 'shared'} />
       </section>
 
       <div className="filter-row">
@@ -121,10 +128,26 @@ export default async function TemplatesPage({ searchParams }) {
         </div>
       )}
 
+      <div className="filter-row">
+        <span className="stat-note">使わせる属性:</span>
+        <a className="filter-chip" data-active={!attr} href={link({ attr: '' })}>
+          指定なし
+        </a>
+        <a className="filter-chip" data-active={attr === 'none'} href={link({ attr: 'none' })}>
+          どの名義でも使う {templates.filter((t) => !(t.attributes ?? []).length).length}
+        </a>
+        {choices.map((c) => (
+          <a key={c} className="filter-chip" data-active={attr === c} href={link({ attr: c })}>
+            {c} {templates.filter((t) => (t.attributes ?? []).includes(c)).length}
+          </a>
+        ))}
+      </div>
+
       <form method="get" action="/templates" className="filter-row">
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="tag" value={tag} />
         <input type="hidden" name="state" value={state} />
+        <input type="hidden" name="attr" value={attr} />
         <input name="q" defaultValue={q} placeholder="本文で検索" className="inline-input" style={{ width: 260 }} />
         <button className="btn" type="submit">
           検索
@@ -145,7 +168,12 @@ export default async function TemplatesPage({ searchParams }) {
               {filtered.length}本{totalPages > 1 ? `（${page} / ${totalPages}ページ）` : ''}
             </small>
           </div>
-          {filtered.length > 0 && <BulkDeleteForm ids={filtered.map((t) => t.id)} label={`${scopeLabel}${tag ? `・タグ「${tag}」` : ''}${q ? `・「${q}」を含む` : ''}`} />}
+          {filtered.length > 0 && (
+            <span className="actions-row">
+              <BulkAttributeForm ids={filtered.map((t) => t.id)} label={filterLabel} choices={choices} />
+              <BulkDeleteForm ids={filtered.map((t) => t.id)} label={filterLabel} />
+            </span>
+          )}
         </div>
 
         {shown.length === 0 ? (
@@ -157,7 +185,7 @@ export default async function TemplatesPage({ searchParams }) {
         ) : (
           <div>
             {shown.map((t) => (
-              <TemplateRow key={t.id} template={t} accounts={slim} lastUsedLabel={toJstShort(t.lastUsedAt)} />
+              <TemplateRow key={t.id} template={t} accounts={slim} choices={choices} lastUsedLabel={toJstShort(t.lastUsedAt)} />
             ))}
           </div>
         )}

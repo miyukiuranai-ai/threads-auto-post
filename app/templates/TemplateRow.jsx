@@ -4,11 +4,12 @@ import { useActionState, useState } from 'react';
 import { updateTemplate, setTemplateEnabled, deleteTemplate, setTemplateMedia } from '../_actions/templates';
 import SubmitButton from '../_components/SubmitButton';
 import MediaUploader from '../_components/MediaUploader';
+import AttributePicker from './AttributePicker';
 import { findPlaceholders } from '@/lib/server/profile.mjs';
 
 const initial = { ok: null, error: null };
 
-export default function TemplateRow({ template, accounts, lastUsedLabel }) {
+export default function TemplateRow({ template, accounts, choices = [], lastUsedLabel }) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(template.body ?? '');
   const [media, setMedia] = useState(Array.isArray(template.media) ? template.media : []);
@@ -19,6 +20,7 @@ export default function TemplateRow({ template, accounts, lastUsedLabel }) {
   const length = [...body].length;
   // {職業} のような差し込みが入っているか（編集中はその場で数え直す）
   const placeholders = findPlaceholders(editing ? body : template.body);
+  const attributes = Array.isArray(template.attributes) ? template.attributes.filter(Boolean) : [];
 
   async function onMediaChange(next) {
     setMedia(next);
@@ -44,6 +46,11 @@ export default function TemplateRow({ template, accounts, lastUsedLabel }) {
           <span>使用 {template.useCount ?? 0}回</span>
           {template.lastUsedAt && <span>最終 {lastUsedLabel}</span>}
           {media.length > 0 && <span>添付 {media.length}個</span>}
+          {attributes.length > 0 && (
+            <span className="badge" data-tone="accent" title="この属性の名義だけが使います">
+              {attributes.join('・')}だけ
+            </span>
+          )}
           {placeholders.map((k) => (
             <span key={k} className="tag tag-fill" title="名義の属性が差し込まれます">
               {'{'}
@@ -62,7 +69,11 @@ export default function TemplateRow({ template, accounts, lastUsedLabel }) {
           <form action={save}>
             <input type="hidden" name="id" value={template.id} />
             <textarea name="body" className="editor" rows={Math.min(20, body.split('\n').length + 2)} value={body} onChange={(e) => setBody(e.target.value)} />
-            <div className="field-grid" style={{ marginTop: 10 }}>
+            <div className="field" style={{ marginTop: 10, marginBottom: 8 }}>
+              <span>使わせる属性</span>
+              <AttributePicker choices={[...new Set([...choices, ...attributes])]} initial={attributes} />
+            </div>
+            <div className="field-grid">
               <label className="field" style={{ marginBottom: 8 }}>
                 <span>タグ</span>
                 <input name="tags" defaultValue={(template.tags ?? []).join(', ')} />

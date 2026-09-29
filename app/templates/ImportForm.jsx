@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { importTemplates } from '../_actions/templates';
 import SubmitButton from '../_components/SubmitButton';
+import AttributePicker from './AttributePicker';
 
 const initial = { ok: null, error: null, skipped: null };
 
@@ -12,7 +13,7 @@ const MODES = [
   { key: 'line', label: '1行 = 1本', hint: '短い一言をたくさん入れるときに。' },
 ];
 
-export default function ImportForm({ accounts, defaultScope = 'shared' }) {
+export default function ImportForm({ accounts, choices = [], defaultScope = 'shared' }) {
   const [state, action] = useActionState(async (_prev, formData) => importTemplates(formData), initial);
   const [mode, setMode] = useState('separator');
   const [text, setText] = useState('');
@@ -63,6 +64,11 @@ export default function ImportForm({ accounts, defaultScope = 'shared' }) {
             {fileName && ` 選択中: ${fileName}`}
           </small>
         </label>
+      </div>
+
+      <div className="field">
+        <span>使わせる属性（任意）</span>
+        <AttributePicker choices={choices} />
       </div>
 
       <label className="field">

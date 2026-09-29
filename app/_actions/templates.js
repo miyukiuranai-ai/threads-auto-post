@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb, COLLECTIONS } from '@/lib/server/firebase.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { listAccounts, listTemplates, invalidate, TAGS } from '@/lib/server/repo.mjs';
-import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion } from '@/lib/server/templates.mjs';
+import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion, normalizeAttributes } from '@/lib/server/templates.mjs';
 import { normalizeMedia } from '@/lib/server/storage.mjs';
 
 /** 取り込みファイルの上限（サーバーアクションの上限より小さく）。 */
@@ -35,6 +35,7 @@ export async function importTemplates(formData) {
   try {
     const { accountId, user } = await resolveScope(formData.get('scope'));
     const tags = parseTags(formData.get('tags'));
+    const attributes = normalizeAttributes(formData.getAll('attributes').map(String));
     const mode = String(formData.get('mode') ?? 'separator');
 
     let items = [];
@@ -51,7 +52,7 @@ export async function importTemplates(formData) {
 
     if (!items.length) return { error: '取り込む文章がありません。貼り付けるか、ファイルを選んでください。' };
 
-    const result = await addTemplates({ items, accountId, tags, createdBy: user.name });
+    const result = await addTemplates({ items, accountId, tags, attributes, createdBy: user.name });
     refresh();
 
     const where = accountId ? 'この名義用' : '全名義共通';
@@ -73,7 +74,13 @@ export async function updateTemplate(formData) {
 
     const db = getDb();
     await db.collection(COLLECTIONS.templates).doc(id).set(
-      { body, tags: parseTags(formData.get('tags')), accountId, updatedAt: new Date().toISOString() },
+      {
+        body,
+        tags: parseTags(formData.get('tags')),
+        attributes: normalizeAttributes(formData.getAll('attributes').map(String)),
+        accountId,
+        updatedAt: new Date().toISOString(),
+      },
       { merge: true }
     );
     await bumpTemplateVersion(db);
@@ -119,6 +126,51 @@ export async function setTemplateMedia(formData) {
     await getDb().collection(COLLECTIONS.templates).doc(id).set({ media, updatedAt: new Date().toISOString() }, { merge: true });
     refresh();
     return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * 絞り込んだ文章に、使わせる属性をまとめて設定する。
+ * 何も選ばなければ「どの名義でも使う」に戻る。
+ * formData: ids（JSON の配列）, attributes（複数）
+ */
+export async function setTemplatesAttributes(formData) {
+  try {
+    const user = await getCurrentUser();
+    const attributes = normalizeAttributes(formData.getAll('attributes').map(String));
+
+    let ids = [];
+    try {
+      ids = JSON.parse(String(formData.get('ids') ?? '[]')).map(String);
+    } catch {
+      return { error: '対象を読めませんでした。' };
+    }
+    if (!ids.length) return { error: '対象がありません。' };
+
+    // 見られる名義の分（と全名義共通）だけ触る
+    const allowed = new Set(filterAccountsForUser(await listAccounts(), user).map((a) => a.id));
+    const all = await listTemplates();
+    const targets = all.filter((t) => ids.includes(t.id) && (t.accountId == null || allowed.has(t.accountId)));
+
+    const db = getDb();
+    const now = new Date().toISOString();
+    for (let i = 0; i < targets.length; i += 400) {
+      const batch = db.batch();
+      for (const t of targets.slice(i, i + 400)) {
+        batch.set(db.collection(COLLECTIONS.templates).doc(t.id), { attributes, updatedAt: now }, { merge: true });
+      }
+      await batch.commit();
+    }
+    await bumpTemplateVersion(db);
+    refresh();
+
+    return {
+      ok: attributes.length
+        ? `${targets.length}本を「${attributes.join('・')}」の名義だけが使うようにしました。`
+        : `${targets.length}本を、どの名義でも使えるようにしました。`,
+    };
   } catch (err) {
     return { error: err.message };
   }

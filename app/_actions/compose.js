@@ -59,6 +59,12 @@ export async function submitCompose(formData) {
         blocked.push({ account: account.name, result: 'failed', reason: `文章が使っている「${filled.missing.join('・')}」がこの名義に設定されていません` });
         continue;
       }
+      // 差し込んだ言葉のぶんで長くなりすぎたら送らない
+      const tooLong = validateBody(filled.body);
+      if (tooLong) {
+        blocked.push({ account: account.name, result: 'failed', reason: `言い回しを差し込むと ${tooLong}` });
+        continue;
+      }
       filledFor.set(account.id, filled.body);
     }
     const ready = targets.filter((a) => filledFor.has(a.id));

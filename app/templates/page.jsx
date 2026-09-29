@@ -6,6 +6,7 @@ import ImportForm from './ImportForm';
 import TemplateRow from './TemplateRow';
 import BulkDeleteForm from './BulkDeleteForm';
 import BulkAttributeForm from './BulkAttributeForm';
+import BulkDuplicateForm from './BulkDuplicateForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,6 +171,7 @@ export default async function TemplatesPage({ searchParams }) {
           </div>
           {filtered.length > 0 && (
             <span className="actions-row">
+              <BulkDuplicateForm ids={filtered.map((t) => t.id)} label={filterLabel} />
               <BulkAttributeForm ids={filtered.map((t) => t.id)} label={filterLabel} choices={choices} />
               <BulkDeleteForm ids={filtered.map((t) => t.id)} label={filterLabel} />
             </span>

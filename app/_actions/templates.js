@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { getDb, COLLECTIONS } from '@/lib/server/firebase.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { listAccounts, listTemplates, invalidate, TAGS } from '@/lib/server/repo.mjs';
-import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion, normalizeAttributes } from '@/lib/server/templates.mjs';
+import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion, normalizeAttributes, MAX_BODY } from '@/lib/server/templates.mjs';
+import { findPlaceholders, ATTRIBUTE_KEY } from '@/lib/server/profile.mjs';
 import { normalizeMedia } from '@/lib/server/storage.mjs';
 
 /** 取り込みファイルの上限（サーバーアクションの上限より小さく）。 */
@@ -126,6 +127,78 @@ export async function setTemplateMedia(formData) {
     await getDb().collection(COLLECTIONS.templates).doc(id).set({ media, updatedAt: new Date().toISOString() }, { merge: true });
     refresh();
     return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * 絞り込んだ文章の「属性を差し込む版」をまとめて作る。
+ * 元の文章はそのまま残るので、属性あり・なしの両方が一巡に入る。
+ * formData: ids（JSON の配列）, position（head / tail）, key（差し込む項目名）, tag（付けるタグ）
+ */
+export async function duplicateWithPlaceholder(formData) {
+  try {
+    const user = await getCurrentUser();
+
+    let ids = [];
+    try {
+      ids = JSON.parse(String(formData.get('ids') ?? '[]')).map(String);
+    } catch {
+      return { error: '対象を読めませんでした。' };
+    }
+    if (!ids.length) return { error: '対象がありません。' };
+
+    const key = String(formData.get('key') ?? ATTRIBUTE_KEY).trim() || ATTRIBUTE_KEY;
+    const position = String(formData.get('position') ?? 'head') === 'tail' ? 'tail' : 'head';
+    const tag = String(formData.get('tag') ?? '').trim();
+    const mark = `{${key}}`;
+
+    const allowed = new Set(filterAccountsForUser(await listAccounts(), user).map((a) => a.id));
+    const all = await listTemplates();
+    const targets = all.filter((t) => ids.includes(t.id) && (t.accountId == null || allowed.has(t.accountId)));
+
+    // 元の文章と同じ名義のまま複製したいので、名義ごとに分けて作る
+    const byAccount = new Map();
+    let skipped = 0;
+    for (const t of targets) {
+      const body = String(t.body ?? '');
+      // すでに差し込みが入っているものは複製しない（二重に付かないように）
+      if (findPlaceholders(body).length) {
+        skipped += 1;
+        continue;
+      }
+      const next = position === 'head' ? `${mark}${body}` : `${body}${mark}`;
+      // 差し込んだ言葉のぶんで上限を超えないよう、少し余裕を見ておく
+      if (validateBody(next) || [...next].length > MAX_BODY - 40) {
+        skipped += 1;
+        continue;
+      }
+      const accountId = t.accountId ?? null;
+      if (!byAccount.has(accountId)) byAccount.set(accountId, []);
+      byAccount.get(accountId).push({
+        body: next,
+        tags: [...new Set([...(t.tags ?? []), ...(tag ? [tag] : [])])],
+        attributes: t.attributes ?? [],
+        media: t.media ?? [],
+      });
+    }
+
+    const total = [...byAccount.values()].reduce((sum, list) => sum + list.length, 0);
+    if (!total) {
+      return { error: `作れる複製がありませんでした（${skipped}本は差し込み済みか、長さが上限に近すぎます）。` };
+    }
+
+    let added = 0;
+    for (const [accountId, list] of byAccount) {
+      const r = await addTemplates({ items: list, accountId, createdBy: user.name });
+      added += r.added;
+    }
+
+    refresh();
+    return {
+      ok: `${added}本の「${mark} を${position === 'head' ? '先頭' : '末尾'}に付けた版」を作りました。元の文章はそのまま残っています。${skipped ? `（${skipped}本は対象外）` : ''}`,
+    };
   } catch (err) {
     return { error: err.message };
   }

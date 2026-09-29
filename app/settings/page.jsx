@@ -2,7 +2,7 @@ import { listAccounts, listTemplates, daysUntil, lastRunAt } from '@/lib/server/
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary } from '@/lib/server/schedule.mjs';
 import { poolOf } from '@/lib/server/templates.mjs';
-import { neededKeys, missingKeys } from '@/lib/server/profile.mjs';
+import { neededKeys, missingKeys, attributeChoices } from '@/lib/server/profile.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
 import { toJstLabel } from '@/lib/server/time.mjs';
 import AddAccountsForm from './AddAccountsForm';
@@ -38,6 +38,9 @@ export default async function SettingsPage() {
   } catch (err) {
     dbError = err.message;
   }
+
+  // 属性の一覧。すでに使われている言葉も選べるようにする
+  const choices = attributeChoices(accounts);
 
   // その名義が使う文章が求めている項目と、まだ空の項目
   const needs = new Map(
@@ -112,6 +115,7 @@ export default async function SettingsPage() {
                     summary={scheduleSummary(a.schedule)}
                     needed={needs.get(a.id)?.needed ?? []}
                     missing={needs.get(a.id)?.missing ?? []}
+                    choices={choices}
                   />
                 ))}
               </tbody>

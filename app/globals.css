@@ -274,7 +274,8 @@ details.fold summary { cursor: pointer; color: var(--accent); font-size: 13px; }
   background: var(--panel-2);
   max-width: 560px;
 }
-.profile-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.profile-sub { font-weight: 700; font-size: 13px; margin-top: 4px; }
+.profile-rows { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .profile-row { display: flex; align-items: center; gap: 6px; }
 .profile-row input {
   border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;

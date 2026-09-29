@@ -8,7 +8,7 @@ import ProfileEditor from './ProfileEditor';
 
 const initial = { ok: null, error: null };
 
-export default function AccountRow({ account, days, isAdmin, summary, needed = [], missing = [] }) {
+export default function AccountRow({ account, days, isAdmin, summary, needed = [], missing = [], choices = [] }) {
   const tone = days === null ? 'warn' : days < 0 ? 'danger' : days < 10 ? 'warn' : 'ok';
   const active = (account.status ?? 'active') === 'active';
 
@@ -86,7 +86,7 @@ export default function AccountRow({ account, days, isAdmin, summary, needed = [
           </button>
         </div>
 
-        {editingProfile && <ProfileEditor account={account} needed={needed} />}
+        {editingProfile && <ProfileEditor account={account} needed={needed} choices={choices} />}
 
         {confirming && (
           <form action={remove} className="remove-box">

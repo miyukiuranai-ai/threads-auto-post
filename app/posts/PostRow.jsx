@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { cancelPost, reschedulePost, updatePostBody, retryPostNow, deletePostRecord, deleteFromThreads } from '../_actions/posts';
 import SubmitButton from '../_components/SubmitButton';
+import { SNAP_POINTS, reachedTarget } from '@/lib/shared/snapshots.mjs';
 
 export const STATUS_LABEL = {
   scheduled: { text: '予約中', tone: 'accent' },
@@ -23,7 +24,7 @@ const SOURCE_LABEL = {
 
 const initial = { ok: null, error: null };
 
-export default function PostRow({ post, label, scheduledLocal, showAccount }) {
+export default function PostRow({ post, label, scheduledLocal, showAccount, target = 30 }) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(post.body ?? '');
   const status = STATUS_LABEL[post.status] ?? { text: post.status, tone: 'default' };
@@ -66,6 +67,29 @@ export default function PostRow({ post, label, scheduledLocal, showAccount }) {
         {media.length > 0 && (
           <div className="post-slot" style={{ marginTop: 6 }}>
             添付: {media.map((m) => (m.kind === 'video' ? '動画' : '画像')).join('・')}（{media.length}個）
+          </div>
+        )}
+        {(post.snap30 || post.snap60) && (
+          <div className="post-slot" style={{ marginTop: 6 }}>
+            {SNAP_POINTS.map((pt) => {
+              const snap = post[pt.key];
+              return (
+                <span key={pt.key} style={{ marginRight: 12 }}>
+                  {pt.label}: いいね {snap ? snap.likes : '—'}
+                  {snap?.views != null && ` / 表示 ${snap.views.toLocaleString()}`}
+                </span>
+              );
+            })}
+            {reachedTarget(post, target) && (
+              <span className="badge" data-tone="ok">
+                目標到達（{reachedTarget(post, target)}）
+              </span>
+            )}
+          </div>
+        )}
+        {post.insightsError && (
+          <div className="post-slot" style={{ color: 'var(--warn)', marginTop: 6 }}>
+            反応を取れませんでした: {post.insightsError}
           </div>
         )}
         {post.error && (

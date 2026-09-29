@@ -1,4 +1,4 @@
-import { listAccounts, listTemplates, listPostedToday, countPostsByStatus, listRecentErrors, lastRunAt, daysUntil } from '@/lib/server/repo.mjs';
+import { listAccounts, listTemplates, listPostedToday, listPostedSince, countPostsByStatus, listRecentErrors, lastRunAt, daysUntil } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary, nextAutoAt, isAutoEnabled } from '@/lib/server/schedule.mjs';
 import { cycleSummary } from '@/lib/server/templates.mjs';
@@ -7,6 +7,7 @@ import { toJstShort, toJstLabel } from '@/lib/server/time.mjs';
 import { setAccountStatus } from './_actions/schedule';
 import SubmitButton from './_components/SubmitButton';
 import DashboardActions from './DashboardActions';
+import TopPosts from './TopPosts';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export default async function OverviewPage() {
   let accounts = [];
   let templates = [];
   let postedToday = [];
+  let recent = [];
   let counts = {};
   let errors = [];
   let last = null;
@@ -31,12 +33,14 @@ export default async function OverviewPage() {
   try {
     accounts = filterAccountsForUser(await listAccounts(), user);
     const visible = new Set(accounts.map((a) => a.id));
-    const [t, p, c, e, l] = await Promise.allSettled([listTemplates(), listPostedToday(), countPostsByStatus(), listRecentErrors({ limit: 5 }), lastRunAt()]);
+    const since = new Date(Date.now() - 24 * 3600000).toISOString();
+    const [t, p, c, e, l, r] = await Promise.allSettled([listTemplates(), listPostedToday(), countPostsByStatus(), listRecentErrors({ limit: 5 }), lastRunAt(), listPostedSince(since)]);
     if (t.status === 'fulfilled') templates = t.value.filter((x) => x.accountId == null || visible.has(x.accountId));
     if (p.status === 'fulfilled') postedToday = p.value.filter((x) => visible.has(x.accountId));
     if (c.status === 'fulfilled') counts = c.value;
     if (e.status === 'fulfilled') errors = e.value;
     if (l.status === 'fulfilled') last = l.value;
+    if (r.status === 'fulfilled') recent = r.value.filter((x) => visible.has(x.accountId));
   } catch (err) {
     dbError = err.message;
   }
@@ -207,6 +211,8 @@ export default async function OverviewPage() {
           </div>
         )}
       </section>
+
+      {!dbError && <TopPosts posts={recent} accounts={accounts} hours={24} />}
 
       <section className="card">
         <div className="card-head">

@@ -14,6 +14,8 @@
   - `profile.mjs` 名義ごとの属性と、本文の `{項目名}` の差し込み（AI は使わない置き換えだけ。値が無ければ投稿しない）。
     文章側の `attributes` が空なら全名義が使い、値が入っていればその属性の名義だけが使う（`poolOf` で絞る）。
     属性ごとの言い回しは Firestore の `attributes/{属性名}.words`。投稿のたびに候補から1つ選ぶ（同じ投稿の中では同じ言葉）。
+  - `insights.mjs` 投稿の30分後・1時間後のいいね数の記録（threads_manage_insights が必要）。`report.mjs` スプレッドシート向けの行づくり。
+    判定だけの `lib/shared/snapshots.mjs` は画面からも読むので、サーバー専用のものを入れない。
   - `time.mjs` 日本時間の扱い（保存は ISO/UTC、画面と設定は日本時間）。
 - 投稿の状態: scheduled → publishing → posted / failed。ほかに missed（時刻切れ）、canceled、skipped（見送り）、deleted。
 - 自動投稿の投稿 ID は `auto-<名義>-<日付>-<時刻>` / `auto-<名義>-i<ms>` で、二重に作らない。

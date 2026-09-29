@@ -5,7 +5,7 @@ import { submitCompose } from '../_actions/compose';
 import SubmitButton from '../_components/SubmitButton';
 import MediaUploader from '../_components/MediaUploader';
 import AccountPicker from '../_components/AccountPicker';
-import { fillProfile, findPlaceholders } from '@/lib/server/profile.mjs';
+import { fillProfile, findPlaceholders, attributeOf } from '@/lib/server/profile.mjs';
 
 const initial = { ok: null, error: null, results: null };
 const MAX = 500;
@@ -19,7 +19,7 @@ const RESULT_LABEL = {
   skipped: { text: '見送り', tone: 'warn' },
 };
 
-export default function ComposeForm({ accounts, defaultLocal }) {
+export default function ComposeForm({ accounts, words = {}, defaultLocal }) {
   const [state, action] = useActionState(async (_prev, formData) => submitCompose(formData), initial);
   const [body, setBody] = useState('');
   const [media, setMedia] = useState([]);
@@ -30,7 +30,7 @@ export default function ComposeForm({ accounts, defaultLocal }) {
   // {職業} のような差し込みが本文にあるとき、名義ごとの仕上がりを確かめられるようにする
   const placeholders = findPlaceholders(body);
   const previews = placeholders.length
-    ? accounts.filter((a) => picked.includes(a.id)).map((a) => ({ account: a, ...fillProfile(body, a) }))
+    ? accounts.filter((a) => picked.includes(a.id)).map((a) => ({ account: a, ...fillProfile(body, a, words[attributeOf(a)] ?? null) }))
     : [];
   const lacking = previews.filter((p) => p.missing.length > 0);
 
@@ -69,7 +69,8 @@ export default function ComposeForm({ accounts, defaultLocal }) {
             <div className="preview-head">
               名義ごとの仕上がり
               <small>
-                {placeholders.map((k) => `{${k}}`).join('・')} が、それぞれの名義の属性に置き換わります
+                {placeholders.map((k) => `{${k}}`).join('・')} が、それぞれの名義の属性に置き換わります。
+                言い回しの候補を登録している属性では、投稿のたびに候補の中から選ばれるので、下の例とは別の言葉になることがあります。
               </small>
             </div>
             {previews.length === 0 ? (

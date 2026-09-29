@@ -13,6 +13,7 @@
     `publish.mjs` Threads への送信（コンテナ作成 → 準備待ち → 公開。準備待ちは次回に引き継ぐ）、`tick.mjs` 5分おきの本体。
   - `profile.mjs` 名義ごとの属性と、本文の `{項目名}` の差し込み（AI は使わない置き換えだけ。値が無ければ投稿しない）。
     文章側の `attributes` が空なら全名義が使い、値が入っていればその属性の名義だけが使う（`poolOf` で絞る）。
+    属性ごとの言い回しは Firestore の `attributes/{属性名}.words`。投稿のたびに候補から1つ選ぶ（同じ投稿の中では同じ言葉）。
   - `time.mjs` 日本時間の扱い（保存は ISO/UTC、画面と設定は日本時間）。
 - 投稿の状態: scheduled → publishing → posted / failed。ほかに missed（時刻切れ）、canceled、skipped（見送り）、deleted。
 - 自動投稿の投稿 ID は `auto-<名義>-<日付>-<時刻>` / `auto-<名義>-i<ms>` で、二重に作らない。

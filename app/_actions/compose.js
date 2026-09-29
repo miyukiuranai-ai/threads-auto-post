@@ -3,11 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { getDb, COLLECTIONS } from '@/lib/server/firebase.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
-import { listAccounts, getAccountWithToken, invalidate, TAGS } from '@/lib/server/repo.mjs';
+import { listAccounts, getAccountWithToken, listAttributeWords, invalidate, TAGS } from '@/lib/server/repo.mjs';
 import { publishPost } from '@/lib/server/publish.mjs';
 import { normalizeMedia } from '@/lib/server/storage.mjs';
 import { validateBody } from '@/lib/server/templates.mjs';
-import { fillProfile } from '@/lib/server/profile.mjs';
+import { fillProfile, attributeOf } from '@/lib/server/profile.mjs';
 import { fromLocalInput } from '@/lib/server/time.mjs';
 
 /** 「今すぐ投稿」で1回に使う時間。サーバー関数の上限（60秒）に収める。 */
@@ -52,8 +52,9 @@ export async function submitCompose(formData) {
     // 値が入っていない名義は投稿せず、理由を返す
     const filledFor = new Map();
     const blocked = [];
+    const wordsByAttribute = await listAttributeWords();
     for (const account of targets) {
-      const filled = fillProfile(body, account);
+      const filled = fillProfile(body, account, wordsByAttribute[attributeOf(account)] ?? null);
       if (filled.missing.length) {
         blocked.push({ account: account.name, result: 'failed', reason: `文章が使っている「${filled.missing.join('・')}」がこの名義に設定されていません` });
         continue;

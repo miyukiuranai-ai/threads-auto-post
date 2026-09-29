@@ -310,3 +310,16 @@ details.fold summary { cursor: pointer; color: var(--accent); font-size: 13px; }
   border: 1px solid var(--line); border-left: 3px solid var(--accent);
   border-radius: 8px; background: var(--panel-2); max-width: 640px;
 }
+
+/* ---------- 属性ごとの言い回し ---------- */
+.words-list { display: flex; flex-direction: column; gap: 8px; }
+.words-item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--panel-2); }
+.words-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.words-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.words-row { margin-bottom: 12px; }
+.words-key { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.words-key input {
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+  font-family: inherit; font-size: 13px; background: var(--panel); color: var(--ink); width: 220px;
+}
+.words-key code { flex: 1; }

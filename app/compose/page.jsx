@@ -1,4 +1,4 @@
-import { listAccounts } from '@/lib/server/repo.mjs';
+import { listAccounts, listAttributeWords } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { toLocalInput } from '@/lib/server/time.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
@@ -13,9 +13,11 @@ export default async function ComposePage() {
   const user = await getCurrentUser();
 
   let accounts = [];
+  let words = {};
   let dbError = null;
   try {
     accounts = filterAccountsForUser(await listAccounts(), user);
+    words = await listAttributeWords();
   } catch (err) {
     dbError = err.message;
   }
@@ -45,7 +47,11 @@ export default async function ComposePage() {
         </div>
       )}
 
-      <ComposeForm accounts={accounts.map((a) => ({ id: a.id, name: a.name, status: a.status ?? 'active' }))} defaultLocal={toLocalInput(defaultAt)} />
+      <ComposeForm
+        accounts={accounts.map((a) => ({ id: a.id, name: a.name, status: a.status ?? 'active', profile: a.profile ?? {} }))}
+        words={words}
+        defaultLocal={toLocalInput(defaultAt)}
+      />
     </>
   );
 }

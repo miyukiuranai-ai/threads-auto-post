@@ -1,13 +1,14 @@
-import { listAccounts, listTemplates, daysUntil, lastRunAt } from '@/lib/server/repo.mjs';
+import { listAccounts, listTemplates, listAttributeWords, daysUntil, lastRunAt } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary } from '@/lib/server/schedule.mjs';
 import { poolOf } from '@/lib/server/templates.mjs';
-import { neededKeys, missingKeys, attributeChoices } from '@/lib/server/profile.mjs';
+import { neededKeys, missingKeys, attributeChoices, attributeOf } from '@/lib/server/profile.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
 import { toJstLabel } from '@/lib/server/time.mjs';
 import AddAccountsForm from './AddAccountsForm';
 import AccountRow from './AccountRow';
 import RefreshTokensButton from './RefreshTokensButton';
+import AttributeWords from './AttributeWords';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -30,11 +31,12 @@ export default async function SettingsPage() {
 
   let accounts = [];
   let templates = [];
+  let words = {};
   let dbError = null;
   let last = null;
   try {
     accounts = filterAccountsForUser(await listAccounts(), user);
-    [templates, last] = await Promise.all([listTemplates(), lastRunAt()]);
+    [templates, words, last] = await Promise.all([listTemplates(), listAttributeWords(), lastRunAt()]);
   } catch (err) {
     dbError = err.message;
   }
@@ -46,7 +48,7 @@ export default async function SettingsPage() {
   const needs = new Map(
     accounts.map((a) => {
       const pool = poolOf(templates, a);
-      return [a.id, { needed: neededKeys(pool), missing: missingKeys(a, pool) }];
+      return [a.id, { needed: neededKeys(pool), missing: missingKeys(a, pool, words[attributeOf(a)] ?? null) }];
     })
   );
 
@@ -126,6 +128,31 @@ export default async function SettingsPage() {
           トークンは60日で失効しますが、定期実行が毎日確かめて自動で延長します。失効してしまったら、同じ名義のトークンを取り直して上の欄に貼れば入れ替わります（設定はそのまま）。
         </p>
       </section>
+
+      {accounts.length > 0 && (
+        <section className="card">
+          <div className="card-head">
+            <div className="card-title">
+              ✦ 属性ごとの言い回し <small>文章の {'{属性}'} に、ここの候補から毎回1つ入ります</small>
+            </div>
+          </div>
+          <p className="stat-note" style={{ marginTop: 0 }}>
+            たとえば「看護師」に <code>看護師</code> <code>ナース</code> <code>夜勤ばっかの看護師</code> と入れておくと、
+            <code>{'{属性}'}です。</code> と書いた文章が投稿のたびに「看護師です。」「ナースです。」のように変わります。
+            候補を入れなければ、属性の名前がそのまま入ります。
+          </p>
+          <div className="words-list">
+            {choices.map((c) => (
+              <AttributeWords
+                key={c}
+                attribute={c}
+                words={words[c] ?? {}}
+                accountNames={accounts.filter((a) => attributeOf(a) === c).map((a) => a.name)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <div className="card-head">

@@ -16,7 +16,8 @@
     "storage:setup": "node scripts/storage-setup.mjs",
     "tick": "node scripts/tick.mjs",
     "templates:import": "node scripts/import-templates.mjs",
-    "token:refresh": "node scripts/refresh-tokens.mjs"
+    "token:refresh": "node scripts/refresh-tokens.mjs",
+    "threads:check": "node scripts/threads-check.mjs"
   },
   "dependencies": {
     "firebase-admin": "^14.3.0",

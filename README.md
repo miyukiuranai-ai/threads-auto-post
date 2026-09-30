@@ -30,6 +30,7 @@ threads-ops-2 と違い、**文章を AI が考えることはなく、承認の
 - [docs/SETUP.md](docs/SETUP.md) … 最初に動かすまで（Firebase、Meta のアプリとトークン、Vercel、定期実行）
 - [docs/OPERATOR.md](docs/OPERATOR.md) … 画面の使い方
 - [docs/spreadsheet.md](docs/spreadsheet.md) … 成果をスプレッドシートで見る手順
+- [docs/research.md](docs/research.md) … 競合の運用を集められるか確かめる手順
 
 ## よくある質問
 

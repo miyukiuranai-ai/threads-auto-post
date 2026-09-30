@@ -87,6 +87,21 @@ export default function PostRow({ post, label, scheduledLocal, showAccount, targ
             )}
           </div>
         )}
+        {/* 伸びた投稿への自動返信の結果 */}
+        {(post.replyThreadId || post.replyError || post.replySkipped) && (
+          <div className="post-slot" style={{ marginTop: 6 }}>
+            {post.replyThreadId ? (
+              <>
+                <span className="badge" data-tone="ok">
+                  返信済み（{post.replyWhen ?? '—'}）
+                </span>
+                <span style={{ marginLeft: 8 }}>{post.replyBody}</span>
+              </>
+            ) : (
+              <span style={{ color: 'var(--warn)' }}>返信できませんでした: {post.replyError ?? post.replySkipped}</span>
+            )}
+          </div>
+        )}
         {post.insightsError && (
           <div className="post-slot" style={{ color: 'var(--warn)', marginTop: 6 }}>
             反応を取れませんでした: {post.insightsError}

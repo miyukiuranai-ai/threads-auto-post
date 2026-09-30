@@ -27,6 +27,8 @@ function formOf(schedule) {
     source: s.source ?? 'both',
     tag: s.tag ?? '',
     minGapMinutes: String(s.minGapMinutes ?? 30),
+    autoReplyEnabled: Boolean(s.autoReply?.enabled),
+    autoReplyTrigger: s.autoReply?.trigger === 'any' ? 'any' : 'snap30',
   };
 }
 
@@ -34,7 +36,7 @@ function formOf(schedule) {
  * 自動投稿の設定を、選んだ名義にまとめて入れる。
  * 名義の一覧の「この設定を読み込む」を押すと、その名義の値がフォームに入る。
  */
-export default function ScheduleEditor({ accounts, tags, loadFrom }) {
+export default function ScheduleEditor({ accounts, tags, loadFrom, target = 30 }) {
   const [state, action] = useActionState(async (_p, fd) => applySchedule(fd), initial);
   const source = loadFrom ? accounts.find((a) => a.id === loadFrom) : null;
   const [form, setForm] = useState(() => formOf(source?.schedule));
@@ -129,6 +131,28 @@ export default function ScheduleEditor({ accounts, tags, loadFrom }) {
             <small>予約投稿や今すぐ投稿の直後に自動投稿が重ならないようにします。</small>
           </label>
         </div>
+
+      <section className="card">
+        <div className="card-head">
+          <div className="card-title">5. 伸びた投稿に、自分で返信を足す</div>
+        </div>
+        <label className="check">
+          <input type="checkbox" name="autoReplyEnabled" checked={form.autoReplyEnabled} onChange={set('autoReplyEnabled')} />
+          いいねが目標に届いた投稿に、自分の投稿として返信する
+        </label>
+        <div className="field-row" style={{ marginTop: 12 }}>
+          <span>返信するきっかけ</span>
+          <select name="autoReplyTrigger" value={form.autoReplyTrigger} onChange={set('autoReplyTrigger')} disabled={!form.autoReplyEnabled}>
+            <option value="snap30">30分後のいいねが目標に届いたら</option>
+            <option value="any">30分後か1時間後のいいねが目標に届いたら</option>
+          </select>
+        </div>
+        <div className="stat-note" style={{ marginTop: 10 }}>
+          返信の文章は「文章ストック」に<strong>返信用</strong>として入れたものから選ばれます（投稿用の文章は使いません）。
+          属性での出し分けや {'{属性}'} の差し込みも、普通の投稿と同じように効きます。
+          1つの投稿に返信するのは1回だけです。いいねの目標は、いまは{target}です。
+        </div>
+      </section>
 
         <div className="editor-foot">
           <span>

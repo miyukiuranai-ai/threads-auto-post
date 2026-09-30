@@ -2,6 +2,7 @@ import { listAccounts, listTemplates } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
 import { attributeChoices } from '@/lib/server/profile.mjs';
+import { kindOf } from '@/lib/server/templates.mjs';
 import ImportForm from './ImportForm';
 import TemplateRow from './TemplateRow';
 import BulkDeleteForm from './BulkDeleteForm';
@@ -32,9 +33,11 @@ export default async function TemplatesPage({ searchParams }) {
   const state = params?.state ?? 'all'; // all / enabled / disabled
   const q = String(params?.q ?? '').trim();
   const attr = params?.attr ?? ''; // '' なら指定なし、'none' なら属性を指定していない文章
+  const kind = params?.kind === 'reply' ? 'reply' : params?.kind === 'post' ? 'post' : 'all'; // 投稿用／返信用
   const page = Math.max(1, Number(params?.page ?? 1) || 1);
 
   let filtered = templates;
+  if (kind !== 'all') filtered = filtered.filter((t) => kindOf(t) === kind);
   if (scope === 'shared') filtered = filtered.filter((t) => t.accountId == null);
   else if (scope !== 'all') filtered = filtered.filter((t) => t.accountId === scope);
   if (tag) filtered = filtered.filter((t) => (t.tags ?? []).includes(tag));
@@ -49,19 +52,21 @@ export default async function TemplatesPage({ searchParams }) {
 
   const allTags = [...new Set(templates.flatMap((t) => t.tags ?? []))].sort();
   const countShared = templates.filter((t) => t.accountId == null).length;
+  const countPost = templates.filter((t) => kindOf(t) === 'post').length;
+  const countReply = templates.filter((t) => kindOf(t) === 'reply').length;
   const countByAccount = new Map(accounts.map((a) => [a.id, templates.filter((t) => t.accountId === a.id).length]));
 
   const link = (extra) => {
-    const next = { scope, tag, state, q, attr, page: 1, ...extra };
+    const next = { scope, tag, state, q, attr, kind, page: 1, ...extra };
     const sp = new URLSearchParams();
-    for (const [k, v] of Object.entries(next)) if (v && !(k === 'scope' && v === 'all') && !(k === 'state' && v === 'all') && !(k === 'page' && v === 1)) sp.set(k, String(v));
+    for (const [k, v] of Object.entries(next)) if (v && !(k === 'scope' && v === 'all') && !(k === 'state' && v === 'all') && !(k === 'kind' && v === 'all') && !(k === 'page' && v === 1)) sp.set(k, String(v));
     const s = sp.toString();
     return `/templates${s ? `?${s}` : ''}`;
   };
 
   const slim = accounts.map((a) => ({ id: a.id, name: a.name }));
   const choices = attributeChoices(accounts);
-  const filterLabel = `${scope === 'all' ? 'すべて' : scope === 'shared' ? '全名義共通' : `@${accounts.find((a) => a.id === scope)?.name ?? scope}`}${tag ? `・タグ「${tag}」` : ''}${attr ? `・属性「${attr === 'none' ? '指定なし' : attr}」` : ''}${q ? `・「${q}」を含む` : ''}`;
+  const filterLabel = `${scope === 'all' ? 'すべて' : scope === 'shared' ? '全名義共通' : `@${accounts.find((a) => a.id === scope)?.name ?? scope}`}${tag ? `・タグ「${tag}」` : ''}${attr ? `・属性「${attr === 'none' ? '指定なし' : attr}」` : ''}${kind === 'reply' ? '・返信用' : kind === 'post' ? '・投稿用' : ''}${q ? `・「${q}」を含む` : ''}`;
   const scopeLabel = scope === 'all' ? 'すべて' : scope === 'shared' ? '全名義共通' : `@${accounts.find((a) => a.id === scope)?.name ?? scope}`;
 
   return (
@@ -69,7 +74,10 @@ export default async function TemplatesPage({ searchParams }) {
       <div className="page-head">
         <div>
           <h1>文章ストック</h1>
-          <p className="page-desc">自動投稿は、ここに入れた文章から1本ずつ取り出して投稿します。全部で {templates.length} 本（有効 {templates.filter((t) => t.enabled !== false).length} 本）。</p>
+          <p className="page-desc">
+            自動投稿は、ここに入れた文章から1本ずつ取り出して投稿します。全部で {templates.length} 本（有効 {templates.filter((t) => t.enabled !== false).length} 本）。
+            うち投稿用 {countPost} 本、伸びた投稿への返信に使う返信用 {countReply} 本。
+          </p>
         </div>
       </div>
 
@@ -88,6 +96,19 @@ export default async function TemplatesPage({ searchParams }) {
         </div>
         <ImportForm accounts={slim} choices={choices} defaultScope={scope !== 'all' && scope !== 'shared' ? scope : 'shared'} />
       </section>
+
+      <div className="filter-row">
+        <span className="stat-note">使いどころ:</span>
+        <a className="filter-chip" data-active={kind === 'all'} href={link({ kind: 'all' })}>
+          すべて {templates.length}
+        </a>
+        <a className="filter-chip" data-active={kind === 'post'} href={link({ kind: 'post' })}>
+          投稿用 {countPost}
+        </a>
+        <a className="filter-chip" data-active={kind === 'reply'} href={link({ kind: 'reply' })}>
+          返信用 {countReply}
+        </a>
+      </div>
 
       <div className="filter-row">
         <a className="filter-chip" data-active={scope === 'all'} href={link({ scope: 'all' })}>

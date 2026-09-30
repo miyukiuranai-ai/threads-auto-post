@@ -18,6 +18,7 @@ export default function ImportForm({ accounts, choices = [], defaultScope = 'sha
   const [mode, setMode] = useState('separator');
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState('');
+  const [kind, setKind] = useState('post');
 
   // 貼り付けた文章が何本になるかを、送る前に数えて見せる
   const count = countParts(text, mode);
@@ -36,6 +37,19 @@ export default function ImportForm({ accounts, choices = [], defaultScope = 'sha
             ))}
           </select>
           <small>名義ごとに文章を分けたいときは、名義を選んで取り込みます。同じ文章が複数の名義から出るのを避けられます。</small>
+        </label>
+
+        <label className="field">
+          <span>文章の使いどころ</span>
+          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="post">投稿用（自動投稿の本文になる）</option>
+            <option value="reply">返信用（伸びた投稿への返信になる）</option>
+          </select>
+          <small>
+            {kind === 'reply'
+              ? 'いいねが目標に届いた自分の投稿へ、返信として足す文章です。自動投稿の本文には使われません。'
+              : '普段の自動投稿に使う文章です。'}
+          </small>
         </label>
 
         <label className="field">

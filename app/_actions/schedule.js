@@ -15,7 +15,7 @@ function refresh() {
 /**
  * 選んだ名義に同じ自動投稿の設定を入れる。
  * formData: accountIds[], dailyEnabled, dailyTimes, intervalEnabled, intervalMinHours, intervalMaxHours,
- *           activeFrom, activeTo, order, source, tag, minGapMinutes
+ *           activeFrom, activeTo, order, source, tag, minGapMinutes, autoReplyEnabled, autoReplyTrigger
  */
 export async function applySchedule(formData) {
   try {
@@ -37,6 +37,8 @@ export async function applySchedule(formData) {
       source: formData.get('source'),
       tag: formData.get('tag'),
       minGapMinutes: formData.get('minGapMinutes'),
+      autoReplyEnabled: formData.get('autoReplyEnabled') === 'on',
+      autoReplyTrigger: formData.get('autoReplyTrigger'),
     });
 
     const db = getDb();
@@ -91,6 +93,9 @@ export async function resetCycle(formData) {
   const allowed = filterAccountsForUser(await listAccounts(), user);
   const id = String(formData.get('accountId') ?? '');
   if (!allowed.some((a) => a.id === id)) return;
-  await getDb().collection(COLLECTIONS.accounts).doc(id).set({ templateCycle: FieldValue.delete() }, { merge: true });
+  await getDb()
+    .collection(COLLECTIONS.accounts)
+    .doc(id)
+    .set({ templateCycle: FieldValue.delete(), replyCycle: FieldValue.delete() }, { merge: true });
   refresh();
 }

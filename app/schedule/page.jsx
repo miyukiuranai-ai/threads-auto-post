@@ -3,6 +3,7 @@ import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary, nextAutoAt, isAutoEnabled } from '@/lib/server/schedule.mjs';
 import { cycleSummary } from '@/lib/server/templates.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
+import { likeTarget } from '@/lib/server/insights.mjs';
 import { setAccountStatus, resetCycle } from '../_actions/schedule';
 import SubmitButton from '../_components/SubmitButton';
 import ScheduleEditor from './ScheduleEditor';
@@ -60,6 +61,7 @@ export default async function SchedulePage({ searchParams }) {
                   <th>自動投稿</th>
                   <th>次の自動投稿</th>
                   <th>文章の一巡</th>
+                  <th>伸びたら返信</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -94,6 +96,15 @@ export default async function SchedulePage({ searchParams }) {
                         )}
                       </td>
                       <td>
+                        {a.schedule?.autoReply?.enabled ? (
+                          <span className="badge" data-tone="ok">
+                            {a.schedule.autoReply.trigger === 'any' ? '30分後か1時間後' : '30分後'}
+                          </span>
+                        ) : (
+                          <span className="stat-note">しない</span>
+                        )}
+                      </td>
+                      <td>
                         <div className="actions-row">
                           <a className="btn" href={`/schedule?load=${a.id}#editor`}>
                             この設定を読み込む
@@ -125,7 +136,7 @@ export default async function SchedulePage({ searchParams }) {
       </section>
 
       <div id="editor" />
-      <ScheduleEditor key={loadFrom ?? 'new'} accounts={accounts.map((a) => ({ id: a.id, name: a.name, status: a.status ?? 'active', schedule: a.schedule ?? null }))} tags={tags} loadFrom={loadFrom} />
+      <ScheduleEditor key={loadFrom ?? 'new'} accounts={accounts.map((a) => ({ id: a.id, name: a.name, status: a.status ?? 'active', schedule: a.schedule ?? null }))} tags={tags} loadFrom={loadFrom} target={likeTarget()} />
     </>
   );
 }

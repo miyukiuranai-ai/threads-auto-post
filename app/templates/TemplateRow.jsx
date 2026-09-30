@@ -21,6 +21,7 @@ export default function TemplateRow({ template, accounts, choices = [], lastUsed
   // {職業} のような差し込みが入っているか（編集中はその場で数え直す）
   const placeholders = findPlaceholders(editing ? body : template.body);
   const attributes = Array.isArray(template.attributes) ? template.attributes.filter(Boolean) : [];
+  const isReply = template.kind === 'reply';
 
   async function onMediaChange(next) {
     setMedia(next);
@@ -38,6 +39,11 @@ export default function TemplateRow({ template, accounts, choices = [], lastUsed
           <span className="badge" data-tone={owner ? 'accent' : 'default'}>
             {owner ? `@${owner.name}` : template.accountId ? '（外された名義）' : '全名義共通'}
           </span>
+          {isReply && (
+            <span className="badge" data-tone="warn" title="伸びた投稿への返信に使います">
+              返信用
+            </span>
+          )}
           {(template.tags ?? []).map((t) => (
             <span key={t} className="tag">
               {t}
@@ -74,6 +80,13 @@ export default function TemplateRow({ template, accounts, choices = [], lastUsed
               <AttributePicker choices={[...new Set([...choices, ...attributes])]} initial={attributes} />
             </div>
             <div className="field-grid">
+              <label className="field" style={{ marginBottom: 8 }}>
+                <span>使いどころ</span>
+                <select name="kind" defaultValue={isReply ? 'reply' : 'post'}>
+                  <option value="post">投稿用</option>
+                  <option value="reply">返信用（伸びた投稿への返信）</option>
+                </select>
+              </label>
               <label className="field" style={{ marginBottom: 8 }}>
                 <span>タグ</span>
                 <input name="tags" defaultValue={(template.tags ?? []).join(', ')} />

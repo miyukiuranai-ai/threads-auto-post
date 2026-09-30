@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb, COLLECTIONS } from '@/lib/server/firebase.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { listAccounts, listTemplates, invalidate, TAGS } from '@/lib/server/repo.mjs';
-import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion, normalizeAttributes, MAX_BODY } from '@/lib/server/templates.mjs';
+import { addTemplates, splitTemplates, templatesFromCsv, parseTags, validateBody, bumpTemplateVersion, normalizeAttributes, kindOf, MAX_BODY } from '@/lib/server/templates.mjs';
 import { findPlaceholders, ATTRIBUTE_KEY } from '@/lib/server/profile.mjs';
 import { normalizeMedia } from '@/lib/server/storage.mjs';
 
@@ -30,7 +30,7 @@ function refresh() {
 
 /**
  * 文章をまとめて取り込む。
- * formData: scope, tags, mode(separator/blank/line), text, file(.txt / .csv)
+ * formData: scope, kind(post/reply), tags, mode(separator/blank/line), text, file(.txt / .csv)
  */
 export async function importTemplates(formData) {
   try {
@@ -38,6 +38,7 @@ export async function importTemplates(formData) {
     const tags = parseTags(formData.get('tags'));
     const attributes = normalizeAttributes(formData.getAll('attributes').map(String));
     const mode = String(formData.get('mode') ?? 'separator');
+    const kind = String(formData.get('kind') ?? 'post') === 'reply' ? 'reply' : 'post';
 
     let items = [];
     const file = formData.get('file');
@@ -53,10 +54,10 @@ export async function importTemplates(formData) {
 
     if (!items.length) return { error: '取り込む文章がありません。貼り付けるか、ファイルを選んでください。' };
 
-    const result = await addTemplates({ items, accountId, tags, attributes, createdBy: user.name });
+    const result = await addTemplates({ items, accountId, tags, attributes, kind, createdBy: user.name });
     refresh();
 
-    const where = accountId ? 'この名義用' : '全名義共通';
+    const where = `${accountId ? 'この名義用' : '全名義共通'}の${kind === 'reply' ? '返信文' : '投稿文'}`;
     const skippedNote = result.skipped.length ? `／ ${result.skipped.length}件は飛ばしました（${result.skipped.slice(0, 3).map((s) => `${s.index}番目: ${s.reason}`).join('、')}${result.skipped.length > 3 ? '…' : ''}）` : '';
     return { ok: `${where}に ${result.added} 本を登録しました ${skippedNote}`, added: result.added, skipped: result.skipped };
   } catch (err) {
@@ -64,7 +65,7 @@ export async function importTemplates(formData) {
   }
 }
 
-/** 1本の本文・タグ・使う名義を書き換える。 */
+/** 1本の本文・タグ・使う名義・種類（投稿用／返信用）を書き換える。 */
 export async function updateTemplate(formData) {
   try {
     const id = String(formData.get('id') ?? '');
@@ -79,6 +80,7 @@ export async function updateTemplate(formData) {
         body,
         tags: parseTags(formData.get('tags')),
         attributes: normalizeAttributes(formData.getAll('attributes').map(String)),
+        kind: String(formData.get('kind') ?? 'post') === 'reply' ? 'reply' : 'post',
         accountId,
         updatedAt: new Date().toISOString(),
       },
@@ -181,6 +183,7 @@ export async function duplicateWithPlaceholder(formData) {
         tags: [...new Set([...(t.tags ?? []), ...(tag ? [tag] : [])])],
         attributes: t.attributes ?? [],
         media: t.media ?? [],
+        kind: kindOf(t),
       });
     }
 

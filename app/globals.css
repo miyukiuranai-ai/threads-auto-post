@@ -323,3 +323,29 @@ details.fold summary { cursor: pointer; color: var(--accent); font-size: 13px; }
   font-family: inherit; font-size: 13px; background: var(--panel); color: var(--ink); width: 220px;
 }
 .words-key code { flex: 1; }
+
+/* 成果の一覧で、目標に届いた名義の行を目立たせる */
+tr[data-hit="true"] td { background: #eef5ef; }
+tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+
+/* ---------- 30分で伸びた名義（ID だけを出す欄） ---------- */
+.hits-box {
+  border: 1px solid #3a475c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #27334a;
+}
+.hits-box[data-any="true"] { border-color: var(--ok); background: #253d33; }
+.hits-none { color: var(--sidebar-muted); font-size: 13px; margin-top: 4px; }
+.hits-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.hit-id {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ok);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.notice .hit-id { background: var(--ok); }

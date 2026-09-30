@@ -14,7 +14,7 @@ const NAV = [
   { href: '/settings', label: '名義の管理', sub: 'トークンの登録・停止' },
 ];
 
-export default function Sidebar({ user, mode, accountCount, dbError }) {
+export default function Sidebar({ user, mode, accountCount, dbError, hits = [], target = 30 }) {
   const pathname = usePathname();
 
   return (
@@ -35,6 +35,22 @@ export default function Sidebar({ user, mode, accountCount, dbError }) {
           </Link>
         ))}
       </nav>
+
+      {/* 30分でいいねが伸びた名義。目で確かめたいだけなので ID だけを出す */}
+      <div className="hits-box" data-any={hits.length > 0}>
+        <div className="brand-sub">30分で{target}いいね（24時間）</div>
+        {hits.length === 0 ? (
+          <div className="hits-none">なし</div>
+        ) : (
+          <div className="hits-list">
+            {hits.map((name) => (
+              <Link key={name} className="hit-id" href="/" title="全体状況で詳しく見る">
+                @{name}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="sidebar-foot">
         <div className="brand-sub" style={{ marginBottom: 6 }}>

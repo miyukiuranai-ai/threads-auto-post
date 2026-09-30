@@ -3,11 +3,13 @@ import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary, nextAutoAt, isAutoEnabled } from '@/lib/server/schedule.mjs';
 import { cycleSummary } from '@/lib/server/templates.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
+import { hitAccountNames, likeTarget } from '@/lib/server/insights.mjs';
 import { toJstShort, toJstLabel } from '@/lib/server/time.mjs';
 import { setAccountStatus } from './_actions/schedule';
 import SubmitButton from './_components/SubmitButton';
 import DashboardActions from './DashboardActions';
 import TopPosts from './TopPosts';
+import AccountResults from './AccountResults';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +20,17 @@ function tokenTone(days) {
   return 'ok';
 }
 
-export default async function OverviewPage() {
+/** 成果を見る期間の切り替え。 */
+const PERIODS = [
+  { hours: 24, label: '24時間' },
+  { hours: 72, label: '3日' },
+  { hours: 168, label: '7日' },
+];
+
+export default async function OverviewPage({ searchParams }) {
+  const params = await searchParams;
+  const hours = PERIODS.some((p) => p.hours === Number(params?.hours)) ? Number(params.hours) : 24;
+  const periods = PERIODS.map((p) => ({ ...p, href: p.hours === 24 ? '/' : `/?hours=${p.hours}` }));
   const user = await getCurrentUser();
 
   let accounts = [];
@@ -33,7 +45,7 @@ export default async function OverviewPage() {
   try {
     accounts = filterAccountsForUser(await listAccounts(), user);
     const visible = new Set(accounts.map((a) => a.id));
-    const since = new Date(Date.now() - 24 * 3600000).toISOString();
+    const since = new Date(Date.now() - hours * 3600000).toISOString();
     const [t, p, c, e, l, r] = await Promise.allSettled([listTemplates(), listPostedToday(), countPostsByStatus(), listRecentErrors({ limit: 5 }), lastRunAt(), listPostedSince(since)]);
     if (t.status === 'fulfilled') templates = t.value.filter((x) => x.accountId == null || visible.has(x.accountId));
     if (p.status === 'fulfilled') postedToday = p.value.filter((x) => visible.has(x.accountId));
@@ -66,6 +78,19 @@ export default async function OverviewPage() {
         </div>
         {!dbError && <DashboardActions count={accounts.length} />}
       </div>
+
+      {!dbError && hitAccountNames({ posts: recent, accounts }).length > 0 && (
+        <div className="notice" data-tone="ok">
+          <strong>30分後にいいね{likeTarget()}以上に届いた名義があります。</strong>
+          <div className="hits-list" style={{ marginTop: 8 }}>
+            {hitAccountNames({ posts: recent, accounts }).map((name) => (
+              <span key={name} className="hit-id">
+                @{name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {postingMode() === 'dry_run' && (
         <div className="notice">
@@ -212,7 +237,9 @@ export default async function OverviewPage() {
         )}
       </section>
 
-      {!dbError && <TopPosts posts={recent} accounts={accounts} hours={24} />}
+      {!dbError && <AccountResults posts={recent} accounts={accounts} hours={hours} periods={periods} />}
+
+      {!dbError && <TopPosts posts={recent} accounts={accounts} hours={hours} />}
 
       <section className="card">
         <div className="card-head">

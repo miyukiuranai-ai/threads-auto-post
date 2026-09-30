@@ -1,11 +1,13 @@
 // 管理画面へのアクセス制限と、利用者の受け渡し。
-// 定期実行のエンドポイントは CRON_SECRET で守られているので対象外にする。
+// 定期実行と成果の読み出し（/api/cron, /api/report）は CRON_SECRET で守られているので対象外にする。
 import { NextResponse } from 'next/server';
 import { isAuthConfigured, USER_HEADERS } from '@/lib/server/auth-core.mjs';
 import { SESSION_COOKIE, readSession } from '@/lib/server/session.mjs';
 
+// /api/cron と /api/report は CRON_SECRET で守られているので、ログインの対象から外す。
+// 外し忘れると、スプレッドシートから読んだときにログイン画面の HTML が返ってしまう。
 export const config = {
-  matcher: ['/((?!api/cron|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/cron|api/report|_next/static|_next/image|favicon.ico).*)'],
 };
 
 const LOGIN_PATH = '/login';

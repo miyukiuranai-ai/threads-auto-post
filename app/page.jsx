@@ -1,9 +1,10 @@
+import Link from 'next/link';
 import { listAccounts, listTemplates, listPostedToday, listPostedSince, countPostsByStatus, listRecentErrors, lastRunAt, daysUntil } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { scheduleSummary, nextAutoAt, isAutoEnabled } from '@/lib/server/schedule.mjs';
 import { cycleSummary } from '@/lib/server/templates.mjs';
 import { postingMode } from '@/lib/server/publish.mjs';
-import { hitAccountNames, likeTarget } from '@/lib/server/insights.mjs';
+import { hitPosts, likeTargets } from '@/lib/server/insights.mjs';
 import { toJstShort, toJstLabel } from '@/lib/server/time.mjs';
 import { setAccountStatus } from './_actions/schedule';
 import SubmitButton from './_components/SubmitButton';
@@ -57,6 +58,10 @@ export default async function OverviewPage({ searchParams }) {
     dbError = err.message;
   }
 
+  // いいねが伸びた投稿（緑＝30分、赤＝2時間）。押すと付いたコメントが出る
+  const targets = likeTargets();
+  const hits = dbError ? [] : hitPosts({ posts: recent, accounts, targets });
+
   const now = new Date();
   const todayByAccount = new Map();
   for (const p of postedToday) todayByAccount.set(p.accountId, (todayByAccount.get(p.accountId) ?? 0) + 1);
@@ -79,14 +84,17 @@ export default async function OverviewPage({ searchParams }) {
         {!dbError && <DashboardActions count={accounts.length} />}
       </div>
 
-      {!dbError && hitAccountNames({ posts: recent, accounts }).length > 0 && (
+      {!dbError && hits.length > 0 && (
         <div className="notice" data-tone="ok">
-          <strong>30分後にいいね{likeTarget()}以上に届いた名義があります。</strong>
+          <strong>いいねが伸びた投稿があります。</strong>
+          <span className="stat-note" style={{ marginLeft: 8 }}>
+            緑は30分で{targets.snap30}いいね、赤は2時間で{targets.snap120}いいね。押すと付いたコメントが出ます。
+          </span>
           <div className="hits-list" style={{ marginTop: 8 }}>
-            {hitAccountNames({ posts: recent, accounts }).map((name) => (
-              <span key={name} className="hit-id">
-                @{name}
-              </span>
+            {hits.map((h) => (
+              <Link key={h.postId} className="hit-id" data-tone={h.tone} href={`/replies?post=${encodeURIComponent(h.postId)}`}>
+                @{h.name}
+              </Link>
             ))}
           </div>
         </div>

@@ -16,6 +16,7 @@ import {
   listMyThreads,
   getThreadInsights,
   parseInsights,
+  getReplies,
   keywordSearch,
   profileLookup,
   shortError,
@@ -79,8 +80,13 @@ async function main() {
         const values = parseInsights(await getThreadInsights({ accessToken, threadId }));
         return `いいね ${values.likes ?? '-'} / 表示 ${values.views ?? '-'}`;
       });
+      await probe('投稿に付いたコメント', 'threads_read_replies を足してトークンを取り直してください', async () => {
+        const replies = await getReplies({ accessToken, threadId, limit: 5 });
+        return `${replies.length}件`;
+      });
     } else {
       console.log(`  － いいね数（インサイト）     投稿がまだ無いので試せません`);
+      console.log(`  － 投稿に付いたコメント       投稿がまだ無いので試せません`);
     }
 
     await probe('公開投稿の検索', 'threads_keyword_search を足してトークンを取り直してください（審査が要る場合あり）', async () => {

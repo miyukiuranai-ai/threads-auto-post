@@ -24,7 +24,7 @@ const SOURCE_LABEL = {
 
 const initial = { ok: null, error: null };
 
-export default function PostRow({ post, label, scheduledLocal, showAccount, target = 30 }) {
+export default function PostRow({ post, label, scheduledLocal, showAccount, targets = { snap30: 30, snap120: 50 } }) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(post.body ?? '');
   const status = STATUS_LABEL[post.status] ?? { text: post.status, tone: 'default' };
@@ -80,9 +80,9 @@ export default function PostRow({ post, label, scheduledLocal, showAccount, targ
                 </span>
               );
             })}
-            {reachedTarget(post, target) && (
+            {reachedTarget(post, targets) && (
               <span className="badge" data-tone="ok">
-                目標到達（{reachedTarget(post, target)}）
+                目標到達（{reachedTarget(post, targets)}）
               </span>
             )}
           </div>

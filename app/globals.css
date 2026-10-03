@@ -335,7 +335,9 @@ tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
   padding: 10px 12px;
   background: #27334a;
 }
-.hits-box[data-any="true"] { border-color: var(--ok); background: #253d33; }
+.hits-box + .hits-box { margin-top: 8px; }
+.hits-box[data-tone="green"][data-any="true"] { border-color: var(--ok); background: #253d33; }
+.hits-box[data-tone="red"][data-any="true"] { border-color: var(--danger); background: #3d2828; }
 .hits-none { color: var(--sidebar-muted); font-size: 13px; margin-top: 4px; }
 .hits-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .hit-id {
@@ -348,6 +350,8 @@ tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
   font-weight: 700;
   white-space: nowrap;
 }
+.hit-id[data-tone="red"] { background: var(--danger); }
+.hit-id:hover { filter: brightness(1.12); }
 .notice .hit-id { background: var(--ok); }
 
 /* 伸びた投稿へ、自分の言葉で返信を足す欄 */
@@ -360,3 +364,44 @@ tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
 .reply-box .editor { width: 100%; }
 .reply-done { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .reply-done li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+
+/* 伸びた投稿のコメント画面 */
+.hit-picker { display: flex; flex-wrap: wrap; gap: 10px; }
+.hit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 230px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ok);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+}
+.hit-card[data-tone="red"] { border-left-color: var(--danger); }
+.hit-card[data-active="true"] { background: var(--panel-2); border-color: var(--accent); }
+.hit-card:hover { background: var(--panel-2); }
+.hit-card-head { display: flex; align-items: center; gap: 8px; }
+.hit-card-body { font-size: 13px; color: var(--ink-muted); }
+
+.origin-post {
+  white-space: pre-wrap;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  font-size: 14px;
+}
+.comment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.comment-list > li {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.comment-list > li[data-mine="true"] { background: var(--panel-2); }
+.comment-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.comment-text { white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
+.comment-reply .editor { width: 100%; }

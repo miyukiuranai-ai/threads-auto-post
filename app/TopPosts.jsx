@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
-import { SNAP_POINTS, reachedTarget, bestLikes } from '@/lib/shared/snapshots.mjs';
-import { likeTarget } from '@/lib/server/insights.mjs';
+import { SNAP_POINTS, reachedTarget, bestLikes, hitRuleOf } from '@/lib/shared/snapshots.mjs';
+import { likeTargets } from '@/lib/server/insights.mjs';
 import { attributeOf } from '@/lib/server/profile.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
 import ReplyBox from './ReplyBox';
@@ -11,11 +11,11 @@ import ReplyBox from './ReplyBox';
  * 伸びた投稿には、その場で自分の言葉で返信を足せる。
  */
 export default function TopPosts({ posts, accounts, hours = 24 }) {
-  const target = likeTarget();
+  const targets = likeTargets();
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   const hits = posts
-    .filter((p) => !p.dryRun && bestLikes(p) >= target)
+    .filter((p) => !p.dryRun && hitRuleOf(p, targets))
     .sort((a, b) => bestLikes(b) - bestLikes(a))
     .slice(0, 20);
 
@@ -26,7 +26,7 @@ export default function TopPosts({ posts, accounts, hours = 24 }) {
     <section className="card">
       <div className="card-head">
         <div className="card-title">
-          ✦ いいねが伸びた投稿 <small>直近{hours}時間・いいね{target}以上</small>
+          ✦ いいねが伸びた投稿 <small>直近{hours}時間・30分で{targets.snap30}いいね、または2時間で{targets.snap120}いいね</small>
         </div>
         <span className="badge" data-tone={hits.length ? 'ok' : 'default'}>
           {hits.length}件 / 記録できた {measured}件
@@ -44,7 +44,7 @@ export default function TopPosts({ posts, accounts, hours = 24 }) {
         <div className="stat-note">
           {measured === 0
             ? 'まだ記録がありません。投稿の30分後・1時間後に自動で記録します。'
-            : `直近${hours}時間で、いいね${target}以上に届いた投稿はありません。`}
+            : `直近${hours}時間で、目標に届いた投稿はありません。`}
         </div>
       ) : (
         <div className="table-scroll">
@@ -74,7 +74,7 @@ export default function TopPosts({ posts, accounts, hours = 24 }) {
                     <td className="num">{p.snap30?.likes ?? '—'}</td>
                     <td className="num">
                       {p.snap60?.likes ?? '—'}
-                      {reachedTarget(p, target) && ' ★'}
+                      {reachedTarget(p, targets) && ' ★'}
                     </td>
                     <td>
                       {p.permalink ? (

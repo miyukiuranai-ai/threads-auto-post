@@ -16,7 +16,10 @@
     属性ごとの言い回しは Firestore の `attributes/{属性名}.words`。投稿のたびに候補から1つ選ぶ（同じ投稿の中では同じ言葉）。
   - `auto-reply.mjs` 伸びた投稿（30分後にいいねが目標に届いたもの）への自分の返信。返信文は文章ストックの `kind: 'reply'` から取る。
     同じ投稿に二度返信しないよう、送る前に `replyClaimedAt` の印を置く。
-  - `insights.mjs` 投稿の30分後・1時間後のいいね数の記録（threads_manage_insights が必要）。`report.mjs` スプレッドシート向けの行づくり。
+  - `comments.mjs` 伸びた投稿に付いたコメントの読み取りと、そこへの返信（threads_read_replies / threads_manage_replies が必要）。
+    ためずに画面を開いたときだけ取りにいく。
+  - `insights.mjs` 投稿の30分後・1時間後・2時間後のいいね数の記録（threads_manage_insights が必要）。
+    「伸びた」枠は `lib/shared/snapshots.mjs` の `HIT_RULES`（緑＝30分で30、赤＝2時間で50）。`report.mjs` スプレッドシート向けの行づくり。
     判定だけの `lib/shared/snapshots.mjs` は画面からも読むので、サーバー専用のものを入れない。
   - `time.mjs` 日本時間の扱い（保存は ISO/UTC、画面と設定は日本時間）。
 - 投稿の状態: scheduled → publishing → posted / failed。ほかに missed（時刻切れ）、canceled、skipped（見送り）、deleted。

@@ -1,7 +1,7 @@
 import { listAccounts, listPosts } from '@/lib/server/repo.mjs';
 import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { toJstLabel, toLocalInput } from '@/lib/server/time.mjs';
-import { likeTarget } from '@/lib/server/insights.mjs';
+import { likeTargets } from '@/lib/server/insights.mjs';
 import PostRow from './PostRow';
 
 export const dynamic = 'force-dynamic';
@@ -115,7 +115,7 @@ export default async function PostsPage({ searchParams }) {
         ) : (
           <div>
             {posts.map((p) => (
-              <PostRow key={p.id} post={p} label={toJstLabel(p.scheduledAt ?? p.createdAt)} scheduledLocal={toLocalInput(p.scheduledAt)} showAccount={!accountId} target={likeTarget()} />
+              <PostRow key={p.id} post={p} label={toJstLabel(p.scheduledAt ?? p.createdAt)} scheduledLocal={toLocalInput(p.scheduledAt)} showAccount={!accountId} targets={likeTargets()} />
             ))}
           </div>
         )}

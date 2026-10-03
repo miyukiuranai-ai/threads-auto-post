@@ -26,6 +26,7 @@ async function loadPost(postId) {
 function refresh() {
   invalidate(TAGS.posts, TAGS.accounts);
   revalidatePath('/posts');
+  revalidatePath('/replies');
   revalidatePath('/');
 }
 

@@ -405,3 +405,9 @@ tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
 .comment-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
 .comment-text { white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
 .comment-reply .editor { width: 100%; }
+.origin-reply {
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}

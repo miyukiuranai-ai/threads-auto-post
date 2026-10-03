@@ -6,6 +6,7 @@ import { loadComments } from '@/lib/server/comments.mjs';
 import { getDb, COLLECTIONS } from '@/lib/server/firebase.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
 import CommentReply from './CommentReply';
+import ReplyBox from '../ReplyBox';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,9 +36,11 @@ export default async function RepliesPage({ searchParams }) {
   // 選ばれた投稿のコメントを、いま Threads へ聞きにいく（ためておかない）
   let comments = [];
   let commentError = null;
+  let myReplies = [];
   if (chosen) {
     const snap = await getDb().collection(COLLECTIONS.posts).doc(chosen.postId).get();
     const post = snap.exists ? { id: snap.id, ...snap.data() } : null;
+    myReplies = Array.isArray(post?.replies) ? post.replies : [];
     const account = await getAccountWithToken(chosen.accountId);
     const loaded = await loadComments({ account, post });
     comments = loaded.replies;
@@ -119,6 +122,14 @@ export default async function RepliesPage({ searchParams }) {
           </div>
 
           <div className="origin-post">{chosen.body}</div>
+
+          {/* 相手のコメントにではなく、自分の投稿そのものにぶら下げる返信 */}
+          <div className="origin-reply">
+            <div className="stat-note" style={{ marginBottom: 6 }}>
+              この投稿そのものに返信を足す（コメントへの返事ではなく、自分の投稿にぶら下がります）
+            </div>
+            <ReplyBox post={{ id: chosen.postId }} replies={myReplies} />
+          </div>
 
           {commentError && (
             <div className="notice" data-tone="danger">

@@ -1,11 +1,14 @@
+import { Fragment } from 'react';
 import { SNAP_POINTS, reachedTarget, bestLikes } from '@/lib/shared/snapshots.mjs';
 import { likeTarget } from '@/lib/server/insights.mjs';
 import { attributeOf } from '@/lib/server/profile.mjs';
 import { toJstShort } from '@/lib/server/time.mjs';
+import ReplyBox from './ReplyBox';
 
 /**
  * よく伸びた投稿の一覧。
  * どの名義のどの文章がいいねを集めたかを、ひと目で分かるようにする。
+ * 伸びた投稿には、その場で自分の言葉で返信を足せる。
  */
 export default function TopPosts({ posts, accounts, hours = 24 }) {
   const target = likeTarget();
@@ -59,8 +62,10 @@ export default function TopPosts({ posts, accounts, hours = 24 }) {
             <tbody>
               {hits.map((p) => {
                 const account = accountMap.get(p.accountId);
+                const replies = Array.isArray(p.replies) ? p.replies : [];
                 return (
-                  <tr key={p.id}>
+                  <Fragment key={p.id}>
+                  <tr>
                     <td>{toJstShort(p.postedAt)}</td>
                     <td>
                       <strong>@{account?.name ?? p.accountName ?? p.accountId}</strong>
@@ -81,6 +86,13 @@ export default function TopPosts({ posts, accounts, hours = 24 }) {
                       )}
                     </td>
                   </tr>
+                  {/* 自分の言葉で返信を足す欄。この行の投稿にぶら下がります */}
+                  <tr className="reply-row">
+                    <td colSpan={6}>
+                      <ReplyBox post={{ id: p.id }} replies={replies} />
+                    </td>
+                  </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

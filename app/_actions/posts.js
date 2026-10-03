@@ -6,6 +6,7 @@ import { getCurrentUser, filterAccountsForUser } from '@/lib/server/auth.mjs';
 import { listAccounts, getAccountWithToken, invalidate, TAGS } from '@/lib/server/repo.mjs';
 import { publishPost } from '@/lib/server/publish.mjs';
 import { deleteThread, shortError } from '@/lib/server/threads.mjs';
+import { sendManualReply } from '@/lib/server/reply.mjs';
 import { validateBody } from '@/lib/server/templates.mjs';
 import { fromLocalInput } from '@/lib/server/time.mjs';
 
@@ -101,5 +102,21 @@ export async function deleteFromThreads(formData) {
     return { ok: 'Threads から削除しました。' };
   } catch (err) {
     return { error: shortError(err) };
+  }
+}
+
+/**
+ * 伸びた投稿へ、自分で考えた返信を送る。
+ * 自動返信とは別で、ここで入力した文章がそのまま返信になります。
+ */
+export async function replyToPost(formData) {
+  try {
+    const { post, account, user } = await loadPost(formData.get('postId'));
+    const withToken = await getAccountWithToken(account.id);
+    const result = await sendManualReply({ post, account: withToken, body: formData.get('body'), by: user.name });
+    if (result.ok) refresh();
+    return result;
+  } catch (err) {
+    return { error: err.message };
   }
 }

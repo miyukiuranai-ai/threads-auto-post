@@ -349,3 +349,14 @@ tr[data-hit="true"] td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
   white-space: nowrap;
 }
 .notice .hit-id { background: var(--ok); }
+
+/* 伸びた投稿へ、自分の言葉で返信を足す欄 */
+.reply-row > td {
+  border-top: 0;
+  padding-top: 0;
+  background: var(--panel-2);
+}
+.reply-box { display: flex; flex-direction: column; gap: 8px; }
+.reply-box .editor { width: 100%; }
+.reply-done { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.reply-done li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
